@@ -211,13 +211,11 @@
     return span;
   }
 
-  /* Shared-axis swap: outgoing text exits upward (accelerate), incoming
-     text rises from below with the spatial spring. */
-  function swap(slot, text, opts = {}) {
+  /* Shared-axis swap of any node: the outgoing one exits upward
+     (accelerate), the incoming one rises from below with a spatial spring. */
+  function swapNode(slot, node, opts = {}) {
     if (!slot) return null;
-    text = String(text);
     const cur = current(slot);
-    if (cur && cur.textContent === text && !opts.force) return cur;
     const dir = opts.dir || 1;
     const delay = opts.delay || 0;
     if (cur) {
@@ -225,12 +223,33 @@
       to(cur, { transform: `translateY(${-55 * dir}%)` }, { m: M.acc(200), delay });
       to(cur, { opacity: "0" }, { m: M.acc(110), delay }).then(() => cur.remove());
     }
-    const span = makeSpan(text);
-    slot.appendChild(span);
-    set(span, { transform: `translateY(${65 * dir}%)`, opacity: "0" });
-    to(span, { transform: "translateY(0%)" }, { m: opts.m || "sd", delay: delay + 90 });
-    to(span, { opacity: "1" }, { m: "ed", delay: delay + 90 });
-    return span;
+    node.classList.add("cz-t");
+    slot.appendChild(node);
+    set(node, { transform: `translateY(${65 * dir}%)`, opacity: "0" });
+    to(node, { transform: "translateY(0%)" }, { m: opts.m || "sd", delay: delay + 90 });
+    to(node, { opacity: "1" }, { m: "ed", delay: delay + 90 });
+    return node;
+  }
+
+  /* Replace a slot's content with a node immediately. */
+  function snapNode(slot, node) {
+    if (!slot) return null;
+    for (const child of [...slot.children]) {
+      set(child, { transform: "", opacity: "" });
+      child.remove();
+    }
+    node.classList.add("cz-t");
+    slot.appendChild(node);
+    return node;
+  }
+
+  /* Shared-axis swap for text. */
+  function swap(slot, text, opts = {}) {
+    if (!slot) return null;
+    text = String(text);
+    const cur = current(slot);
+    if (cur && cur.textContent === text && !opts.force) return cur;
+    return swapNode(slot, makeSpan(text), opts);
   }
 
   /* Shrink a span's font until it fits maxWidth (then ellipsis). */
@@ -434,6 +453,93 @@
   })();
 
   /* ------------------------------------------------------------------ */
+  /* Badge logos and the graphics logo group                             */
+  /* The corner bug owns the logo library and publishes the group logo   */
+  /* ({type: "grouplogo"}). Badges that follow the group swap together.  */
+  /* ------------------------------------------------------------------ */
+
+  function artImage(src, scale = 1) {
+    const img = document.createElement("img");
+    img.className = "cz-badge__emblem";
+    img.alt = "";
+    img.src = src;
+    const size = 78 * Math.max(0.5, Math.min(1.2, scale || 1));
+    img.style.inset = `${(100 - size) / 2}%`;
+    img.style.width = `${size}%`;
+    img.style.height = `${size}%`;
+    return img;
+  }
+
+  /* Old art shrinks and turns away, new art pops in on the fast spring. */
+  function swapArt(container, img, animate) {
+    if (!animate) {
+      container.textContent = "";
+      if (img) container.appendChild(img);
+      return;
+    }
+    for (const old of [...container.children]) {
+      to(old, { transform: "scale(0.5) rotate(40deg)" }, { m: M.acc(200) });
+      to(old, { opacity: "0" }, { m: M.acc(150) }).then(() => old.remove());
+    }
+    if (!img) return;
+    container.appendChild(img);
+    set(img, { transform: "scale(0.5) rotate(-40deg)", opacity: "0" });
+    to(img, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 140 });
+    to(img, { opacity: "1" }, { m: "ef", delay: 140 });
+  }
+
+  const LOGO_GROUPS = ["1", "2", "3", "4"];
+
+  /* Operator value -> "1".."4" or "school" ("group" from older rundowns = "1"). */
+  function logoGroup(value) {
+    const v = String(value || "").trim();
+    if (v === "school") return "school";
+    return LOGO_GROUPS.includes(v) ? v : "1";
+  }
+
+  /**
+   * Keeps a logo spot in step with a logo group (published by the bug).
+   * opts = { art, fallback (school image), live(): bool, onChange(), make?(src, scale) }
+   */
+  function followLogo(opts) {
+    const make = opts.make || artImage;
+    const entries = {};         // group -> published logo (null = school)
+    let mode = "1";
+    let shownKey = null;
+
+    function draw(animate) {
+      const e = mode === "school" ? null : entries[mode];
+      const img = e && e.kind !== "school" ? e : null;
+      const k = img ? `${img.key}|${img.scale || 1}` : "school";
+      if (k === shownKey) return;
+      shownKey = k;
+      swapArt(opts.art, make(img ? img.src : opts.fallback, img ? img.scale : 1), animate);
+      if (animate && opts.onChange) opts.onChange();
+    }
+
+    bus.on((msg) => {
+      if (msg.type !== "grouplogo") return;
+      const group = String(msg.group);
+      entries[group] = msg.logo || null;
+      if (group === mode) draw(opts.live());
+    });
+    draw(false);
+
+    return {
+      setMode(next, animate) {
+        mode = logoGroup(next);
+        draw(animate);
+      },
+      snapshot: () => ({ entries }),
+      restore(snap) {
+        if (snap && snap.entries) Object.assign(entries, snap.entries);
+        shownKey = null;
+        draw(false);
+      }
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Graphic controller                                                  */
   /* ------------------------------------------------------------------ */
 
@@ -459,6 +565,7 @@
    *   family, defaults,
    *   render(raw, { animate, first }),   // apply data (animated when on air)
    *   enter(), exit()                    // return promises (resolve when settled)
+   *   prepare?(raw)                      // async work before render (e.g. load images)
    *   next?(), snapshot?(), restore?(snap, elapsedMs), idle?(),
  *   oneShot?  // true: the graphic returns to idle when enter() settles
    * }
@@ -475,6 +582,7 @@
     // Nothing runs before fonts and images are ready, so every measurement
     // uses final metrics. The off-air layout is re-measured once they are.
     let queue = timeout(Promise.all([fonts(Object.values(def.defaults || {}).join("")), images(def.preload || [])]), 2000)
+      .then(() => (def.prepare ? timeout(def.prepare(g.raw), 2000) : null))
       .then(() => { if (g.state === "off") def.render(g.raw, { animate: false, first: false }); })
       .catch((error) => console.error("CZ:", error));
     function enqueue(fn) {
@@ -546,6 +654,7 @@
       }
       g.raw = { ...g.raw, ...clean };
       await fonts(Object.values(g.raw).join(""));
+      if (def.prepare) await timeout(def.prepare(g.raw), 2000);
       const live = g.state === "in" || g.state === "on";
       def.render(g.raw, { animate: live, first: false });
       if (live) saveSnapshot();
@@ -608,9 +717,10 @@
 
   window.CZ = {
     M, EASE, bezier, to, set, pulse, wait,
-    decode, swap, snap, fit, slotText, current,
+    decode, swap, snap, swapNode, snapNode, fit, slotText, current,
     SHAPES, shape, shapePx, shapePoints,
     fonts, images, bus, graphic, fitStage,
+    artImage, swapArt, followLogo, logoGroup, LOGO_GROUPS,
     params
   };
 })();

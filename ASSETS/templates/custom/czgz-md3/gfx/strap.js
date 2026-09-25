@@ -39,7 +39,7 @@
       sub: $("sub")
     };
 
-    const EMPTY = { side: "left", kicker: "", title: "", tag: "", sub: "" };
+    const EMPTY = { side: "left", kicker: "", title: "", tag: "", sub: "", logo: "1" };
     let model = { ...EMPTY };
     let L = { kickerW: 0, tagW: 0, cardW: MIN_W };
     let rot = 0;
@@ -222,12 +222,21 @@
         snap(el.sub, model.sub);
       }
 
+      badgeLogo.setMode(model.logo, live);
       L = measure(model);
       layout(live);
       if (live && ["kicker", "title", "tag", "sub"].some((k) => prev[k] !== model[k])) tick();
     }
 
     bus.watch("ticker", (on) => el.zone.classList.toggle("is-lifted", on));
+
+    // Badge logo follows the chosen logo group (published by the corner bug).
+    const badgeLogo = window.CZ.followLogo({
+      art: el.emblem,
+      fallback: "./img/emblem.png",
+      live: () => visible,
+      onChange: tick
+    });
 
     poseOff();
 
@@ -253,9 +262,10 @@
         poseOff();
       },
       snapshot() {
-        return { model, L, rot, decoRot };
+        return { model, L, rot, decoRot, logo: badgeLogo.snapshot() };
       },
       restore(snapData) {
+        badgeLogo.restore(snapData.logo);
         if (snapData.model) renderModel(snapData.model, false);
         if (snapData.L) L = snapData.L;
         rot = snapData.rot || 0;

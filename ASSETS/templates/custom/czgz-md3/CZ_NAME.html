@@ -28,6 +28,16 @@
             { text: "右侧", value: "right" }
           ]
         },
+        {
+          field: "f4", ftype: "dropdown", title: "标志组", value: "1",
+          items: [
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
+            { text: "固定学校标志", value: "school" }
+          ]
+        },
         { ftype: "instruction", value: "同一层播放“标题条”会从当前人名条形变过去；滚动字幕在播时自动上移。" }
       ]
     };
@@ -39,7 +49,7 @@
       <section class="strap" id="strap" aria-label="人名条">
         <div class="cz-badge strap-badge">
           <div class="cz-badge__shape" id="badgeShape"></div>
-          <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+          <div class="cz-badge__art" id="badgeEmblem"></div>
         </div>
         <div class="strap-kicker" id="kicker"><div class="strap-kicker__in" id="kickerIn"><div class="cz-slot" id="kickerSlot"></div></div></div>
         <div class="strap-card" id="card">
@@ -61,8 +71,8 @@
   <script src="./gfx/strap.js"></script>
   <script>
     CZStrap({
-      defaults: { f0: "张明远", f1: "高二（3）班 · 学生会主席", f2: "主持人", f3: "left" },
-      model: (d) => ({ side: d.f3 === "right" ? "right" : "left", kicker: "", title: d.f0, tag: d.f2, sub: d.f1 })
+      defaults: { f0: "张明远", f1: "高二（3）班 · 学生会主席", f2: "主持人", f3: "left", f4: "1" },
+      model: (d) => ({ side: d.f3 === "right" ? "right" : "left", kicker: "", title: d.f0, tag: d.f2, sub: d.f1, logo: d.f4 })
     });
   </script>
 </body>

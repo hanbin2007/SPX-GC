@@ -22,6 +22,16 @@
         { field: "f1", ftype: "textfield", title: "副标题（可留空）", value: "2026年秋季学期开学典礼" },
         { field: "f2", ftype: "textarea", title: "项目（每行一项，可写“时间 | 内容”，最多 9 项）", value: "08:30 | 升国旗、奏唱国歌\n08:40 | 校长开学致辞\n09:00 | 优秀学生表彰\n09:20 | 教师代表发言\n09:35 | 新生代表发言\n09:50 | 校歌合唱" },
         { field: "f3", ftype: "number", title: "当前项（0 = 不高亮）", value: "1" },
+        {
+          field: "f4", ftype: "dropdown", title: "标志组", value: "1",
+          items: [
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
+            { text: "固定学校标志", value: "school" }
+          ]
+        },
         { ftype: "instruction", value: "播出后按 Continue 逐项推进高亮，已完成项自动打勾。与全屏卡共用第 1 层。" }
       ]
     };
@@ -34,7 +44,7 @@
         <header class="ag-head" id="head">
           <div class="cz-badge ag-badge">
             <div class="cz-badge__shape" id="badgeShape"></div>
-            <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+            <div class="cz-badge__art" id="badgeEmblem"></div>
           </div>
           <div class="ag-heading">
             <div class="cz-slot ag-title" id="title"></div>

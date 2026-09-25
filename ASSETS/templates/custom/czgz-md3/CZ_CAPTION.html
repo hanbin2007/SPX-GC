@@ -21,6 +21,16 @@
         { field: "f0", ftype: "textfield", title: "栏目（左侧色块，可留空）", value: "开学典礼" },
         { field: "f1", ftype: "textfield", title: "主标题", value: "2026年秋季学期开学典礼暨表彰大会" },
         { field: "f2", ftype: "textfield", title: "副标题（可留空）", value: "学校体育馆 · 全校师生共同参与" },
+        {
+          field: "f3", ftype: "dropdown", title: "标志组", value: "1",
+          items: [
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
+            { text: "固定学校标志", value: "school" }
+          ]
+        },
         { ftype: "instruction", value: "同一层播放“人名条”会从当前标题条形变过去；滚动字幕在播时自动上移。" }
       ]
     };
@@ -32,7 +42,7 @@
       <section class="strap" id="strap" aria-label="标题条">
         <div class="cz-badge strap-badge">
           <div class="cz-badge__shape" id="badgeShape"></div>
-          <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+          <div class="cz-badge__art" id="badgeEmblem"></div>
         </div>
         <div class="strap-kicker" id="kicker"><div class="strap-kicker__in" id="kickerIn"><div class="cz-slot" id="kickerSlot"></div></div></div>
         <div class="strap-card" id="card">
@@ -54,8 +64,8 @@
   <script src="./gfx/strap.js"></script>
   <script>
     CZStrap({
-      defaults: { f0: "开学典礼", f1: "2026年秋季学期开学典礼暨表彰大会", f2: "学校体育馆 · 全校师生共同参与" },
-      model: (d) => ({ side: "left", kicker: d.f0, title: d.f1, tag: "", sub: d.f2 })
+      defaults: { f0: "开学典礼", f1: "2026年秋季学期开学典礼暨表彰大会", f2: "学校体育馆 · 全校师生共同参与", f3: "1" },
+      model: (d) => ({ side: "left", kicker: d.f0, title: d.f1, tag: "", sub: d.f2, logo: d.f3 })
     });
   </script>
 </body>
