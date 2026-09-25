@@ -231,7 +231,7 @@
     return Promise.all(jobs);
   }
 
-  // Badge logo follows the graphics logo group (published by the corner bug).
+  // Badge logo follows the chosen logo group (published by the corner bug).
   const badgeLogo = window.CZ.followLogo({
     art: el.emblem,
     fallback: "./img/emblem-mark.png",
@@ -251,7 +251,7 @@
       f1: "2026年秋季学期开学典礼",
       f2: "08:30 | 升国旗、奏唱国歌\n08:40 | 校长开学致辞\n09:00 | 优秀学生表彰\n09:20 | 教师代表发言\n09:35 | 新生代表发言\n09:50 | 校歌合唱",
       f3: "1",
-      f4: "group"
+      f4: "1"
     },
     render,
     enter,

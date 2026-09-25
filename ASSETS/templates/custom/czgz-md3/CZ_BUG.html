@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./gfx/bug.css">
   <script>
     window.SPXGCTemplateDefinition = {
-      description: "常高 M3 · 台标角标（标志轮播 + 直播状态 + 时钟）",
+      description: "常高 M3 · 台标角标（标志库与标志组 + 直播状态 + 时钟）",
       playserver: "-",
       playchannel: "1",
       playlayer: "40",
@@ -30,20 +30,23 @@
         { field: "f1", ftype: "textfield", title: "活动名称（可留空）", value: "" },
         { field: "f2", ftype: "checkbox", title: "显示时钟", value: "1" },
         { field: "f3", ftype: "checkbox", title: "显示名称（校名书法 / 标志文件名）", value: "1" },
-        { ftype: "divider", title: "标志库" },
-        { ftype: "instruction", value: "把 PNG / SVG / JPG 放进本模板的 logos 文件夹，刷新 SPX 后即可在“文件”里选择。每个标志单独设置名称、显示方式、缩放、停留时间，以及用在角标、图文组（议程卡、人名条、标题条的徽章）还是两者。" },
         {
-          field: "f4", ftype: "dropdown", title: "学校标志用于", value: "both",
+          field: "f6", ftype: "dropdown", title: "角标标志组", value: "1",
           items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" },
-            { text: "不使用", value: "none" }
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
+            { text: "固定学校标志", value: "school" }
           ]
         },
-        { field: "f5", ftype: "textfield", title: "学校标志停留秒数（留空=默认间隔）", value: "" },
+        { ftype: "divider", title: "标志库" },
+        { ftype: "instruction", value: "每个图文元素（角标、议程卡、人名条、标题条、全屏卡、转场）各自选择一个标志组，同组的元素显示同一个标志、一起切换。下面给每个标志指定所属组（可填多个，如 1 3）；组里有多个标志时按该组设置轮播，组里没有标志时显示学校标志。标志文件放进本模板的 logos 文件夹，刷新 SPX 后即可选择。" },
+        { field: "f4", ftype: "textfield", title: "学校标志所属组（如 1 3，留空=不参与轮播）", value: "" },
+        { field: "f5", ftype: "textfield", title: "学校标志停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 1" },
         { field: "f10", ftype: "filelist", title: "文件", assetfolder: "./logos/", extension: "G", value: "" },
+        { field: "f15", ftype: "textfield", title: "所属组（如 1 或 1 3）", value: "1" },
         { field: "f11", ftype: "textfield", title: "名称（留空=文件名，填 - 不显示）", value: "" },
         {
           field: "f12", ftype: "dropdown", title: "显示方式（角标里）", value: "auto",
@@ -63,17 +66,10 @@
             { text: "120%", value: "1.2" }
           ]
         },
-        { field: "f14", ftype: "textfield", title: "停留秒数（留空=默认间隔）", value: "" },
-        {
-          field: "f15", ftype: "dropdown", title: "用于", value: "bug",
-          items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" }
-          ]
-        },
+        { field: "f14", ftype: "textfield", title: "停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 2" },
         { field: "f20", ftype: "filelist", title: "文件", assetfolder: "./logos/", extension: "G", value: "" },
+        { field: "f25", ftype: "textfield", title: "所属组（如 1 或 1 3）", value: "1" },
         { field: "f21", ftype: "textfield", title: "名称（留空=文件名，填 - 不显示）", value: "" },
         {
           field: "f22", ftype: "dropdown", title: "显示方式（角标里）", value: "auto",
@@ -93,17 +89,10 @@
             { text: "120%", value: "1.2" }
           ]
         },
-        { field: "f24", ftype: "textfield", title: "停留秒数（留空=默认间隔）", value: "" },
-        {
-          field: "f25", ftype: "dropdown", title: "用于", value: "bug",
-          items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" }
-          ]
-        },
+        { field: "f24", ftype: "textfield", title: "停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 3" },
         { field: "f30", ftype: "filelist", title: "文件", assetfolder: "./logos/", extension: "G", value: "" },
+        { field: "f35", ftype: "textfield", title: "所属组（如 1 或 1 3）", value: "1" },
         { field: "f31", ftype: "textfield", title: "名称（留空=文件名，填 - 不显示）", value: "" },
         {
           field: "f32", ftype: "dropdown", title: "显示方式（角标里）", value: "auto",
@@ -123,17 +112,10 @@
             { text: "120%", value: "1.2" }
           ]
         },
-        { field: "f34", ftype: "textfield", title: "停留秒数（留空=默认间隔）", value: "" },
-        {
-          field: "f35", ftype: "dropdown", title: "用于", value: "bug",
-          items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" }
-          ]
-        },
+        { field: "f34", ftype: "textfield", title: "停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 4" },
         { field: "f40", ftype: "filelist", title: "文件", assetfolder: "./logos/", extension: "G", value: "" },
+        { field: "f45", ftype: "textfield", title: "所属组（如 1 或 1 3）", value: "1" },
         { field: "f41", ftype: "textfield", title: "名称（留空=文件名，填 - 不显示）", value: "" },
         {
           field: "f42", ftype: "dropdown", title: "显示方式（角标里）", value: "auto",
@@ -153,17 +135,10 @@
             { text: "120%", value: "1.2" }
           ]
         },
-        { field: "f44", ftype: "textfield", title: "停留秒数（留空=默认间隔）", value: "" },
-        {
-          field: "f45", ftype: "dropdown", title: "用于", value: "bug",
-          items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" }
-          ]
-        },
+        { field: "f44", ftype: "textfield", title: "停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 5" },
         { field: "f50", ftype: "filelist", title: "文件", assetfolder: "./logos/", extension: "G", value: "" },
+        { field: "f55", ftype: "textfield", title: "所属组（如 1 或 1 3）", value: "1" },
         { field: "f51", ftype: "textfield", title: "名称（留空=文件名，填 - 不显示）", value: "" },
         {
           field: "f52", ftype: "dropdown", title: "显示方式（角标里）", value: "auto",
@@ -183,17 +158,10 @@
             { text: "120%", value: "1.2" }
           ]
         },
-        { field: "f54", ftype: "textfield", title: "停留秒数（留空=默认间隔）", value: "" },
-        {
-          field: "f55", ftype: "dropdown", title: "用于", value: "bug",
-          items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" }
-          ]
-        },
+        { field: "f54", ftype: "textfield", title: "停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 6" },
         { field: "f60", ftype: "filelist", title: "文件", assetfolder: "./logos/", extension: "G", value: "" },
+        { field: "f65", ftype: "textfield", title: "所属组（如 1 或 1 3）", value: "1" },
         { field: "f61", ftype: "textfield", title: "名称（留空=文件名，填 - 不显示）", value: "" },
         {
           field: "f62", ftype: "dropdown", title: "显示方式（角标里）", value: "auto",
@@ -213,16 +181,8 @@
             { text: "120%", value: "1.2" }
           ]
         },
-        { field: "f64", ftype: "textfield", title: "停留秒数（留空=默认间隔）", value: "" },
-        {
-          field: "f65", ftype: "dropdown", title: "用于", value: "bug",
-          items: [
-            { text: "角标和图文组", value: "both" },
-            { text: "只在角标", value: "bug" },
-            { text: "只在图文组", value: "group" }
-          ]
-        },
-        { ftype: "divider", title: "角标轮播" },
+        { field: "f64", ftype: "textfield", title: "停留秒数（留空=组默认间隔）", value: "" },
+        { ftype: "divider", title: "1 组" },
         {
           field: "f70", ftype: "dropdown", title: "切换方式", value: "auto",
           items: [
@@ -231,19 +191,37 @@
           ]
         },
         { field: "f71", ftype: "number", title: "默认间隔（秒，最少 3）", value: "8" },
-        { ftype: "button", title: "角标下一个标志", descr: "播出中立即切换", fcall: "(function(b){var r=b.closest('.itemrow');ajaxpost('/gc/playout',{command:'invoke',playserver:'-',webplayout:r?r.querySelector('input[name*=webplayout]').value:'4',function:'czLogoStep',params:'1'},'true');})(this)" },
-        { ftype: "divider", title: "图文组标志" },
-        { ftype: "instruction", value: "议程卡、人名条、标题条的“徽章标志”选“跟随图文组”时，徽章显示这里的当前标志，并且一起切换。角标条目需要播出过（收起后仍然有效）。" },
+        { ftype: "button", title: "1 组下一个标志", descr: "该组所有元素一起切换", fcall: "(function(b){var r=b.closest('.itemrow');ajaxpost('/gc/playout',{command:'invoke',playserver:'-',webplayout:r?r.querySelector('input[name*=webplayout]').value:'4',function:'czGroupStep',params:'1'},'true');})(this)" },
+        { ftype: "divider", title: "2 组" },
         {
           field: "f72", ftype: "dropdown", title: "切换方式", value: "auto",
           items: [
             { text: "自动轮播", value: "auto" },
-            { text: "手动", value: "manual" },
-            { text: "与角标同步", value: "sync" }
+            { text: "手动", value: "manual" }
           ]
         },
-        { field: "f73", ftype: "number", title: "默认间隔（秒，最少 3）", value: "10" },
-        { ftype: "button", title: "图文组下一个标志", descr: "所有跟随的徽章一起切换", fcall: "(function(b){var r=b.closest('.itemrow');ajaxpost('/gc/playout',{command:'invoke',playserver:'-',webplayout:r?r.querySelector('input[name*=webplayout]').value:'4',function:'czGroupStep',params:'1'},'true');})(this)" },
+        { field: "f73", ftype: "number", title: "默认间隔（秒，最少 3）", value: "8" },
+        { ftype: "button", title: "2 组下一个标志", descr: "该组所有元素一起切换", fcall: "(function(b){var r=b.closest('.itemrow');ajaxpost('/gc/playout',{command:'invoke',playserver:'-',webplayout:r?r.querySelector('input[name*=webplayout]').value:'4',function:'czGroupStep',params:'2'},'true');})(this)" },
+        { ftype: "divider", title: "3 组" },
+        {
+          field: "f74", ftype: "dropdown", title: "切换方式", value: "auto",
+          items: [
+            { text: "自动轮播", value: "auto" },
+            { text: "手动", value: "manual" }
+          ]
+        },
+        { field: "f75", ftype: "number", title: "默认间隔（秒，最少 3）", value: "8" },
+        { ftype: "button", title: "3 组下一个标志", descr: "该组所有元素一起切换", fcall: "(function(b){var r=b.closest('.itemrow');ajaxpost('/gc/playout',{command:'invoke',playserver:'-',webplayout:r?r.querySelector('input[name*=webplayout]').value:'4',function:'czGroupStep',params:'3'},'true');})(this)" },
+        { ftype: "divider", title: "4 组" },
+        {
+          field: "f76", ftype: "dropdown", title: "切换方式", value: "auto",
+          items: [
+            { text: "自动轮播", value: "auto" },
+            { text: "手动", value: "manual" }
+          ]
+        },
+        { field: "f77", ftype: "number", title: "默认间隔（秒，最少 3）", value: "8" },
+        { ftype: "button", title: "4 组下一个标志", descr: "该组所有元素一起切换", fcall: "(function(b){var r=b.closest('.itemrow');ajaxpost('/gc/playout',{command:'invoke',playserver:'-',webplayout:r?r.querySelector('input[name*=webplayout]').value:'4',function:'czGroupStep',params:'4'},'true');})(this)" },
         { ftype: "instruction", value: "全屏卡播出时角标自动隐藏，全屏卡收起后自动回来。" }
       ]
     };

@@ -27,6 +27,16 @@
           ]
         },
         { field: "f1", ftype: "checkbox", title: "显示校名", value: "1" },
+        {
+          field: "f2", ftype: "dropdown", title: "标志组", value: "1",
+          items: [
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
+            { text: "固定学校标志", value: "school" }
+          ]
+        },
         { ftype: "instruction", value: "点播放即完整走一遍，无需收起。画面在 0.7 秒左右被完全遮挡，此时在切换台切机位。" }
       ]
     };
@@ -40,7 +50,7 @@
         <div class="st-center">
           <div class="cz-badge st-badge">
             <div class="cz-badge__shape" id="badgeShape"></div>
-            <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+            <div class="cz-badge__art" id="badgeEmblem"></div>
           </div>
           <i class="cz-wordmark st-word" id="word"></i>
         </div>

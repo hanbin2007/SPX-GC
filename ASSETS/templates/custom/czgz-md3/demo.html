@@ -268,12 +268,12 @@
     const GRAPHICS = [
       {
         id: "bug", name: "台标角标", file: "CZ_BUG.html", layer: 4,
-        desc: "标志库 + 直播状态 + 时钟；添加的本地标志同时用于角标和图文组",
+        desc: "标志库 + 直播状态 + 时钟；添加的本地标志和学校标志都归 1 组（各图文默认跟随 1 组）",
         logos: true,
         samples: [
-          { f0: "live", f1: "", f2: "1", f3: "1", f4: "both", f70: "auto", f71: "5", f72: "auto", f73: "6" },
-          { f0: "live", f1: "第68届田径运动会", f2: "1", f3: "1", f4: "both", f70: "auto", f71: "5", f72: "sync", f73: "6" },
-          { f0: "replay", f1: "开学典礼", f2: "0", f3: "1", f4: "both", f70: "manual", f71: "8", f72: "manual", f73: "8" }
+          { f0: "live", f1: "", f2: "1", f3: "1", f4: "1", f6: "1", f70: "auto", f71: "5" },
+          { f0: "live", f1: "第68届田径运动会", f2: "1", f3: "1", f4: "1", f6: "1", f70: "auto", f71: "5" },
+          { f0: "replay", f1: "开学典礼", f2: "0", f3: "1", f4: "1", f6: "1", f70: "manual", f71: "8" }
         ]
       },
       {
@@ -339,7 +339,7 @@
 
     function dataFor(g) {
       const d = { ...g.samples[state[g.id].sample] };
-      if (g.logos) extraLogos.forEach((url, i) => { d[`f${i + 1}0`] = url; d[`f${i + 1}5`] = "both"; });
+      if (g.logos) extraLogos.forEach((url, i) => { d[`f${i + 1}0`] = url; d[`f${i + 1}5`] = "1"; });
       return d;
     }
     const state = {};        // id -> { sample, on }
@@ -420,8 +420,7 @@
       if (!g.oneShot) add("更新", "tonal", () => update(g));
       if (g.next) add("下一步", "tonal", () => call(g, "next"));
       if (g.logos) {
-        add("角标下一个", "tonal", () => call(g, "czLogoStep", "1"));
-        add("图文组下一个", "tonal", () => call(g, "czGroupStep", "1"));
+        add("1 组下一个", "tonal", () => call(g, "czGroupStep", "1"));
         const picker = document.createElement("input");
         picker.type = "file";
         picker.accept = "image/png,image/svg+xml,image/jpeg,image/webp";

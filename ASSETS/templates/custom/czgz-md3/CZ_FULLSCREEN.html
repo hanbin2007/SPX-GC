@@ -47,6 +47,16 @@
             { text: "月白（浅色）", value: "light" }
           ]
         },
+        {
+          field: "f8", ftype: "dropdown", title: "标志组", value: "1",
+          items: [
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
+            { text: "固定学校标志", value: "school" }
+          ]
+        },
         { ftype: "instruction", value: "播出时角标自动隐藏。播出中更新场景/配色会原地形变；同层播放另一张全屏卡会无缝接续，不会闪黑。" }
       ]
     };
@@ -67,7 +77,7 @@
       <header class="fs-brand">
         <div class="cz-badge fs-badge">
           <div class="cz-badge__shape" id="badgeShape"></div>
-          <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+          <div class="cz-badge__art" id="badgeEmblem"></div>
         </div>
         <div class="fs-names">
           <i class="cz-wordmark" id="wordmark"></i>
@@ -93,7 +103,7 @@
           <div class="fs-orb__digits" id="digits"></div>
           <div class="cz-slot fs-orb__note" id="orbNote"></div>
         </div>
-        <div class="fs-orb__emblem" id="orbEmblem"><img src="./img/emblem.png" alt=""></div>
+        <div class="fs-orb__emblem" id="orbEmblem"><div class="fs-orb__art" id="orbArt"></div></div>
       </div>
     </section>
   </main>

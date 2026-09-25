@@ -29,9 +29,12 @@
           ]
         },
         {
-          field: "f4", ftype: "dropdown", title: "徽章标志", value: "group",
+          field: "f4", ftype: "dropdown", title: "标志组", value: "1",
           items: [
-            { text: "跟随图文组（由角标条目统一切换）", value: "group" },
+            { text: "1 组", value: "1" },
+            { text: "2 组", value: "2" },
+            { text: "3 组", value: "3" },
+            { text: "4 组", value: "4" },
             { text: "固定学校标志", value: "school" }
           ]
         },
@@ -68,7 +71,7 @@
   <script src="./gfx/strap.js"></script>
   <script>
     CZStrap({
-      defaults: { f0: "张明远", f1: "高二（3）班 · 学生会主席", f2: "主持人", f3: "left", f4: "group" },
+      defaults: { f0: "张明远", f1: "高二（3）班 · 学生会主席", f2: "主持人", f3: "left", f4: "1" },
       model: (d) => ({ side: d.f3 === "right" ? "right" : "left", kicker: "", title: d.f0, tag: d.f2, sub: d.f1, logo: d.f4 })
     });
   </script>

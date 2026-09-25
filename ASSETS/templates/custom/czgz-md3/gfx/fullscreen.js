@@ -27,7 +27,8 @@
     label: $("orbLabel"),
     digits: $("digits"),
     note: $("orbNote"),
-    orbEmblem: $("orbEmblem")
+    orbEmblem: $("orbEmblem"),
+    orbArt: $("orbArt")
   };
 
   const CX = 1460;
@@ -208,6 +209,7 @@
   function render(raw, opts) {
     const prev = model;
     const live = opts.animate && visible;
+    for (const follower of logoSpots) follower.setMode(raw.f8, live);
     const mode = MODES[raw.f0] ? raw.f0 : "starting";
     const info = MODES[mode];
     model = {
@@ -346,6 +348,26 @@
 
   poseOff();
 
+  // Brand badge and orb emblem follow the chosen logo group (published by the bug).
+  const logoSpots = [
+    window.CZ.followLogo({ art: el.emblem, fallback: "./img/emblem.png", live: () => visible }),
+    window.CZ.followLogo({
+      art: el.orbArt,
+      fallback: "./img/emblem.png",
+      live: () => visible,
+      make(src, scale) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.src = src;
+        const size = 100 * Math.max(0.5, Math.min(1.2, scale || 1));
+        img.style.inset = `${(100 - size) / 2}%`;
+        img.style.width = `${size}%`;
+        img.style.height = `${size}%`;
+        return img;
+      }
+    })
+  ];
+
   window.CZ.graphic({
     family: "fullscreen",
     defaults: {
@@ -356,16 +378,18 @@
       f4: "",
       f5: "5",
       f6: "dark",
-      f7: ""
+      f7: "",
+      f8: "1"
     },
     render,
     enter,
     exit,
     idle: poseOff,
     snapshot() {
-      return { raw: model && model.raw, durKey, durStart, orbRot };
+      return { raw: model && model.raw, durKey, durStart, orbRot, logos: logoSpots[0].snapshot() };
     },
     restore(s) {
+      for (const follower of logoSpots) follower.restore(s.logos);
       durKey = s.durKey || "";
       durStart = s.durStart || 0;
       orbRot = s.orbRot || 0;

@@ -127,13 +127,17 @@
     });
   }
 
+  // Centre badge follows the chosen logo group (published by the bug).
+  const badgeLogo = window.CZ.followLogo({ art: el.emblem, fallback: "./img/emblem.png", live: () => raf !== 0 });
+
   poseOff();
 
   window.CZ.graphic({
     family: "transition",
     oneShot: true,
-    defaults: { f0: "normal", f1: "1" },
+    defaults: { f0: "normal", f1: "1", f2: "1" },
     render(raw) {
+      badgeLogo.setMode(raw.f2, false);
       hold = HOLDS[raw.f0] || HOLDS.normal;
       showWord = raw.f1 !== "0" && raw.f1 !== "false";
       el.word.style.display = showWord ? "" : "none";

@@ -39,7 +39,7 @@
       sub: $("sub")
     };
 
-    const EMPTY = { side: "left", kicker: "", title: "", tag: "", sub: "", logo: "group" };
+    const EMPTY = { side: "left", kicker: "", title: "", tag: "", sub: "", logo: "1" };
     let model = { ...EMPTY };
     let L = { kickerW: 0, tagW: 0, cardW: MIN_W };
     let rot = 0;
@@ -230,7 +230,7 @@
 
     bus.watch("ticker", (on) => el.zone.classList.toggle("is-lifted", on));
 
-    // Badge logo follows the graphics logo group (published by the corner bug).
+    // Badge logo follows the chosen logo group (published by the corner bug).
     const badgeLogo = window.CZ.followLogo({
       art: el.emblem,
       fallback: "./img/emblem.png",

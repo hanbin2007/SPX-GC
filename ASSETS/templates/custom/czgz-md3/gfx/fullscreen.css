@@ -239,10 +239,12 @@
   background: #ffffff;
 }
 
-.fs-orb__emblem img {
+.fs-orb__art {
   position: absolute;
   inset: 26px;
-  width: calc(100% - 52px);
-  height: calc(100% - 52px);
+}
+
+.fs-orb__art img {
+  position: absolute;
   object-fit: contain;
 }

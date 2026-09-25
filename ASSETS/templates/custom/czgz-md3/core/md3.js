@@ -488,39 +488,51 @@
     to(img, { opacity: "1" }, { m: "ef", delay: 140 });
   }
 
+  const LOGO_GROUPS = ["1", "2", "3", "4"];
+
+  /* Operator value -> "1".."4" or "school" ("group" from older rundowns = "1"). */
+  function logoGroup(value) {
+    const v = String(value || "").trim();
+    if (v === "school") return "school";
+    return LOGO_GROUPS.includes(v) ? v : "1";
+  }
+
   /**
-   * Keeps a badge in step with the group logo.
-   * opts = { art, fallback (school image), live(): bool, onChange() }
+   * Keeps a logo spot in step with a logo group (published by the bug).
+   * opts = { art, fallback (school image), live(): bool, onChange(), make?(src, scale) }
    */
   function followLogo(opts) {
-    let mode = "group";
-    let entry = null;           // null = school
+    const make = opts.make || artImage;
+    const entries = {};         // group -> published logo (null = school)
+    let mode = "1";
     let shownKey = null;
 
     function draw(animate) {
-      const e = mode === "group" && entry && entry.kind !== "school" ? entry : null;
-      const k = e ? `${e.key}|${e.scale || 1}` : "school";
+      const e = mode === "school" ? null : entries[mode];
+      const img = e && e.kind !== "school" ? e : null;
+      const k = img ? `${img.key}|${img.scale || 1}` : "school";
       if (k === shownKey) return;
       shownKey = k;
-      swapArt(opts.art, artImage(e ? e.src : opts.fallback, e ? e.scale : 1), animate);
+      swapArt(opts.art, make(img ? img.src : opts.fallback, img ? img.scale : 1), animate);
       if (animate && opts.onChange) opts.onChange();
     }
 
     bus.on((msg) => {
       if (msg.type !== "grouplogo") return;
-      entry = msg.logo || null;
-      draw(opts.live());
+      const group = String(msg.group);
+      entries[group] = msg.logo || null;
+      if (group === mode) draw(opts.live());
     });
     draw(false);
 
     return {
       setMode(next, animate) {
-        mode = next === "school" ? "school" : "group";
+        mode = logoGroup(next);
         draw(animate);
       },
-      snapshot: () => entry,
-      restore(e) {
-        entry = e || null;
+      snapshot: () => ({ entries }),
+      restore(snap) {
+        if (snap && snap.entries) Object.assign(entries, snap.entries);
         shownKey = null;
         draw(false);
       }
@@ -708,7 +720,7 @@
     decode, swap, snap, swapNode, snapNode, fit, slotText, current,
     SHAPES, shape, shapePx, shapePoints,
     fonts, images, bus, graphic, fitStage,
-    artImage, swapArt, followLogo,
+    artImage, swapArt, followLogo, logoGroup, LOGO_GROUPS,
     params
   };
 })();
