@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  NEWSLINE · TICKER 滚动字幕                          SPX web layer 2
+  Reserves the bottom band: lower thirds and fullscreen content lift to
+  clear it (they move first, the ticker enters into the space). Updates
+  while on air join the conveyor seamlessly. See README.md.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Newsline · 滚动字幕</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <style>
+    .tk-band {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 40px;
+      height: 58px;
+      display: flex;
+      align-items: stretch;
+    }
+    .tk-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgb(18 33 48 / 96%), rgb(10 19 29 / 96%));
+      clip-path: inset(0 0 100% 0);
+    }
+    .tk-line {
+      position: absolute;
+      z-index: 2;
+      left: 0;
+      right: 0;
+      top: -3px;
+      height: 3px;
+      background: var(--nl-signal);
+      transform: scaleX(0);
+      transform-origin: 100% 50%;
+    }
+    .tk-label {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 30px 0 var(--nl-safe-x);
+      color: #fff;
+      background: var(--nl-signal);
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      clip-path: inset(0 100% 0 0);
+    }
+    .tk-label .nl-swap { height: 58px; line-height: 58px; }
+    .tk-text-rise { display: block; transform: translate3d(0, 100%, 0); opacity: 0; }
+
+    .tk-viewport {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      overflow: hidden;
+      opacity: 0;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 96px), transparent calc(100% - 24px));
+              mask-image: linear-gradient(90deg, transparent 0, #000 40px, #000 calc(100% - 96px), transparent calc(100% - 24px));
+    }
+    .tk-track {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      will-change: transform;
+      transition: opacity var(--t-swap) var(--ease-out);
+    }
+    .tk-item {
+      flex: none;
+      color: var(--nl-on-ink);
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+    .tk-item::after {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin: 0 40px;
+      vertical-align: 5px;
+      background: var(--nl-signal);
+    }
+    .tk-flip {
+      position: absolute;
+      left: 40px;
+      top: 0;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      opacity: 0;
+      transition: opacity var(--t-swap) var(--ease-out);
+    }
+    .tk-flip .nl-swap { height: 58px; line-height: 58px; color: var(--nl-on-ink); font-size: 30px; font-weight: 500; letter-spacing: .02em; }
+    .is-flip .tk-track { opacity: 0; }
+    .is-flip .tk-flip  { opacity: 1; }
+
+    /* ---- enter ---- */
+    .nl-root[data-show="1"] .tk-line { transform: scaleX(1); transform-origin: 0 50%; }
+    .nl-root[data-show="1"] .tk-bg { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .tk-label { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .tk-text-rise { transform: translate3d(0, 0, 0); opacity: 1; }
+    .nl-root[data-show="1"] .tk-viewport { opacity: 1; }
+
+    .nl-root[data-show="1"][data-motion="enter"] .tk-line { transition: transform var(--t-draw) var(--ease-out); }
+    .nl-root[data-show="1"][data-motion="enter"] .tk-bg { transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 1); }
+    .nl-root[data-show="1"][data-motion="enter"] .tk-label { transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 2); }
+    .nl-root[data-show="1"][data-motion="enter"] .tk-text-rise {
+      transition: transform var(--t-text) var(--ease-out) calc(var(--t-stagger) * 3), opacity calc(var(--t-text) * .5) linear calc(var(--t-stagger) * 3);
+    }
+    .nl-root[data-show="1"][data-motion="enter"] .tk-viewport { transition: opacity var(--t-text) var(--ease-out) calc(var(--t-stagger) * 3); }
+
+    /* ---- exit ---- */
+    .nl-root[data-show="0"] .tk-viewport { transition: opacity calc(var(--t-out) * .5) linear; }
+    .nl-root[data-show="0"] .tk-text-rise { transition: opacity calc(var(--t-out) * .5) linear, transform 0s linear var(--t-out); }
+    .nl-root[data-show="0"] .tk-label { transition: clip-path calc(var(--t-out) * .8) var(--ease-in) calc(var(--t-stagger) * .5); }
+    .nl-root[data-show="0"] .tk-bg { transition: clip-path calc(var(--t-out) * .9) var(--ease-in) calc(var(--t-stagger) * 1); }
+    .nl-root[data-show="0"] .tk-line { transition: transform calc(var(--t-out) * .9) var(--ease-in) calc(var(--t-stagger) * 2); }
+  </style>
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "Newsline 滚动字幕 TICKER",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "12",
+      webplayout: "2",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "2",
+      DataFields: [
+        { field: "f0", ftype: "textarea", title: "字幕内容（每行一条）", value: "国家统计局发布前三季度国民经济运行数据\n多地出台举措支持城市更新与老旧小区改造\n秋粮收获进度过半，主产区天气总体有利\n全国铁路国庆假期累计发送旅客超一亿五千万人次" },
+        { field: "f1", ftype: "textfield", title: "标签", value: "快讯" },
+        {
+          field: "f2", ftype: "dropdown", title: "模式", value: "scroll",
+          items: [ { text: "滚动", value: "scroll" }, { text: "翻页", value: "flip" } ]
+        },
+        {
+          field: "f3", ftype: "dropdown", title: "速度", value: "140",
+          items: [ { text: "慢", value: "100" }, { text: "标准", value: "140" }, { text: "快", value: "180" } ]
+        },
+        { ftype: "instruction", value: "字幕条上屏时，标题条 / 人名条 / 全屏图文会自动上移让出空间。播出中更新内容会在队尾无缝接续。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root tk" id="root">
+      <div class="tk-band">
+        <div class="tk-bg"></div>
+        <i class="tk-line"></i>
+        <div class="tk-label"><span class="tk-text-rise"><span class="nl-swap" id="label"></span></span></div>
+        <div class="tk-viewport" id="viewport">
+          <div class="tk-track" id="track"></div>
+          <div class="tk-flip"><span class="nl-swap" id="flip"></span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const N = window.Newsline;
+      if (!N) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      const view = $("viewport");
+      const track = $("track");
+      N.stage($("stage"));
+
+      const FLIP_DWELL = 6000;
+      let items = [];
+      let mode = "scroll";
+      let speed = 140;
+
+      /* ---- conveyor: nodes leave on the left, new ones join on the right ---- */
+      let queue = [];      // [{ node, width }]
+      let cursor = 0;
+      let x = 0;
+      let total = 0;
+      let raf = 0;
+      let last = 0;
+
+      function append() {
+        if (!items.length) return false;
+        const node = document.createElement("span");
+        node.className = "tk-item";
+        node.textContent = items[cursor % items.length];
+        cursor += 1;
+        track.appendChild(node);
+        const width = node.offsetWidth;
+        queue.push({ node, width });
+        total += width;
+        return true;
+      }
+
+      function fill() {
+        const need = view.clientWidth + 480;
+        for (let guard = 0; x + total < need && guard < 60; guard += 1) if (!append()) break;
+      }
+
+      function reset() {
+        track.textContent = "";
+        queue = [];
+        total = 0;
+        cursor = 0;
+        x = 40;                     // text is already there as the band opens
+        track.style.transform = `translate3d(${x}px,0,0)`;
+      }
+
+      function tick(t) {
+        const dt = last ? Math.min(0.1, (t - last) / 1000) : 0;
+        last = t;
+        x -= speed * dt;
+        while (queue.length && x + queue[0].width < 0) {
+          const first = queue.shift();
+          x += first.width;
+          total -= first.width;
+          first.node.remove();
+        }
+        fill();
+        track.style.transform = `translate3d(${x.toFixed(2)}px,0,0)`;
+        raf = requestAnimationFrame(tick);
+      }
+
+      function run(on) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        last = 0;
+        if (on && mode === "scroll") raf = requestAnimationFrame(tick);
+      }
+
+      /* ---- flip: one item at a time, pushed up ---- */
+      let flipTimer = 0;
+      let flipIndex = 0;
+      function flipTo(i, animate) {
+        if (!items.length) { N.swap($("flip"), "", { animate }); return; }
+        flipIndex = i % items.length;
+        N.swap($("flip"), items[flipIndex], { animate, fit: { max: view.clientWidth - 120, size: 30, min: 24 } });
+      }
+      function flipRun(on) {
+        clearInterval(flipTimer);
+        if (on && mode === "flip") flipTimer = setInterval(() => flipTo(flipIndex + 1, true), FLIP_DWELL);
+      }
+
+      N.define({
+        kind: "ticker",
+        root,
+        enterMs: 960,
+        exitMs: 520,
+        enterDelay: N.T.room,            // let the others make room first
+        releaseDelay: N.T.out,           // leave first, then give the room back
+        reserve: () => ({ bottom: 40 + 58 }),
+        defaults: {
+          f0: "国家统计局发布前三季度国民经济运行数据\n多地出台举措支持城市更新与老旧小区改造\n秋粮收获进度过半，主产区天气总体有利\n全国铁路国庆假期累计发送旅客超一亿五千万人次",
+          f1: "快讯",
+          f2: "scroll",
+          f3: "140"
+        },
+        render(d, ctx) {
+          const animate = ctx.animate;
+          N.swap($("label"), N.clean(d.f1) || "快讯", { animate });
+
+          const nextItems = N.clean(d.f0).split("\n").map((s) => s.trim()).filter(Boolean);
+          const changed = nextItems.join("\n") !== items.join("\n");
+          items = nextItems;
+          speed = Math.max(40, Number(d.f3) || 140);
+
+          const nextMode = d.f2 === "flip" ? "flip" : "scroll";
+          const modeChanged = nextMode !== mode;
+          mode = nextMode;
+          root.classList.toggle("is-flip", mode === "flip");
+
+          if (!animate) {
+            // off air: build the first picture from scratch
+            reset();
+            flipTo(0, false);
+            return;
+          }
+          // on air: new items join the conveyor at the next seam
+          if (changed) cursor = 0;
+          if (mode === "flip" && (changed || modeChanged)) { flipTo(0, true); flipRun(true); }
+          if (modeChanged) {
+            if (mode === "scroll") { reset(); run(true); } else { run(false); }
+            flipRun(true);
+          }
+        },
+        onShow(shown, motion) {
+          if (shown) {
+            if (motion !== "cut") { reset(); flipTo(0, false); }
+            run(true);
+            flipRun(true);
+            return;
+          }
+          // keep moving while fading out, park once the exit has finished
+          setTimeout(() => { if (!this.shown) { run(false); flipRun(false); } }, this.o.exitMs);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
