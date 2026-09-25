@@ -105,7 +105,7 @@ czgz-md3/
   demo.html          五层预览台
   core/              设计令牌 md3.css、动效令牌 motion.css、动效引擎 md3.js
   gfx/               各模板的样式与逻辑
-  img/               校徽、书法校名（遮罩，可任意着色）
+  img/               校徽 emblem.png、去掉文字环的裁切版 emblem-mark.png（角标与议程卡使用）、书法校名（遮罩，可任意着色）
   fonts/             Google Sans Flex 子集、Noto Sans SC 分片（均为 SIL OFL 1.1）
   tools/gen-motion.js  由弹簧参数生成 core/motion.css
 ```

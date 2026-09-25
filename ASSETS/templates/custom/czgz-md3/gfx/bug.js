@@ -160,7 +160,7 @@
     const img = document.createElement("img");
     img.className = "cz-badge__emblem";
     img.alt = "";
-    img.src = entry.kind === "school" ? "./img/emblem.png" : entry.src;
+    img.src = entry.kind === "school" ? "./img/emblem-mark.png" : entry.src;
     return img;
   }
 
@@ -438,7 +438,7 @@
   window.CZ.graphic({
     family: "bug",
     defaults: { f0: "live", f1: "", f2: "1", f3: "1", f4: "1", f5: "", f6: "", f7: "", f8: "", f9: "", f10: "", f11: "auto", f12: "8" },
-    preload: ["./img/emblem.png"],
+    preload: ["./img/emblem-mark.png"],
     prepare(raw) {
       return Promise.all(requested(raw).filter((e) => e.kind === "image").map((e) => measureImage(e.src)));
     },
