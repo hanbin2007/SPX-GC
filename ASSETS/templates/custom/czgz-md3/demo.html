@@ -268,11 +268,12 @@
     const GRAPHICS = [
       {
         id: "bug", name: "台标角标", file: "CZ_BUG.html", layer: 4,
-        desc: "校徽 + 校名 + 直播状态 + 时钟",
+        desc: "标志轮播 + 直播状态 + 时钟；可添加本地标志试看",
+        logos: true,
         samples: [
-          { f0: "live", f1: "", f2: "1", f3: "1" },
-          { f0: "live", f1: "第68届田径运动会", f2: "1", f3: "1" },
-          { f0: "replay", f1: "开学典礼", f2: "0", f3: "1" }
+          { f0: "live", f1: "", f2: "1", f3: "1", f4: "1", f11: "auto", f12: "5" },
+          { f0: "live", f1: "第68届田径运动会", f2: "1", f3: "1", f4: "1", f11: "auto", f12: "5" },
+          { f0: "replay", f1: "开学典礼", f2: "0", f3: "1", f4: "1", f11: "manual", f12: "8" }
         ]
       },
       {
@@ -334,6 +335,13 @@
     const scene = document.getElementById("scene");
     const panel = document.getElementById("panel");
     const layerOwner = {};   // layer -> graphic id currently loaded
+    const extraLogos = [];   // blob URLs added with “添加标志”, mapped onto f5–f10
+
+    function dataFor(g) {
+      const d = { ...g.samples[state[g.id].sample] };
+      if (g.logos) extraLogos.forEach((url, i) => { d[`f${5 + i}`] = url; });
+      return d;
+    }
     const state = {};        // id -> { sample, on }
 
     function fitCanvas() {
@@ -358,7 +366,7 @@
       layerOwner[g.layer] = g.id;
       f.onload = () => {
         f.onload = null;
-        f.contentWindow.update(JSON.stringify(g.samples[s.sample]));
+        f.contentWindow.update(JSON.stringify(dataFor(g)));
         f.contentWindow.play();
       };
       f.src = `${g.file}?random=${Date.now()}`;
@@ -380,7 +388,7 @@
       const s = state[g.id];
       s.sample = (s.sample + 1) % g.samples.length;
       document.getElementById(`sample-${g.id}`).textContent = `示例 ${s.sample + 1}/${g.samples.length}`;
-      call(g, "update", JSON.stringify(g.samples[s.sample]));
+      call(g, "update", JSON.stringify(dataFor(g)));
     }
 
     function stop(g) {
@@ -411,6 +419,24 @@
       add("播出", "play", () => play(g));
       if (!g.oneShot) add("更新", "tonal", () => update(g));
       if (g.next) add("下一步", "tonal", () => call(g, "next"));
+      if (g.logos) {
+        add("下一个标志", "tonal", () => call(g, "czLogoStep", "1"));
+        const picker = document.createElement("input");
+        picker.type = "file";
+        picker.accept = "image/png,image/svg+xml,image/jpeg,image/webp";
+        picker.multiple = true;
+        picker.hidden = true;
+        picker.addEventListener("change", () => {
+          for (const file of picker.files) {
+            if (extraLogos.length >= 6) break;
+            extraLogos.push(`${URL.createObjectURL(file)}#${file.name}`);
+          }
+          picker.value = "";
+          call(g, "update", JSON.stringify(dataFor(g)));
+        });
+        btns.appendChild(picker);
+        add("添加标志…", "tonal", () => picker.click());
+      }
       if (!g.oneShot) add("收起", "out", () => stop(g));
       else add("换示例", "tonal", () => update(g));
       panel.appendChild(card);
