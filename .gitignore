@@ -78,6 +78,10 @@ DATAROOT/
 # IGNORE SPX ASSETS
 # ...but allow specific files and folders for GitHub
 ASSETS/**
+!ASSETS/templates/
+!ASSETS/templates/custom/
+!ASSETS/templates/custom/newsline/
+!ASSETS/templates/custom/newsline/**
 !ASSETS/csv/csv-folder.md
 !ASSETS/excel/ticker-demo/basic-news-ticker.xlsx
 # Add templates with:
@@ -93,5 +97,4 @@ ASSETS/**
 # ..and include some PLUGIN files for GitHub
 !ASSETS/ExtraFunctions/modules
 !ASSETS/ExtraFunctions/spx_internal_demo_functions.js
-
 

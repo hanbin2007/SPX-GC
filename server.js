@@ -841,7 +841,7 @@ process.on('uncaughtException', function(err) {
 });    
 
 
-var server = app.listen(port, (err) => {
+var server = app.listen(port, process.env.SPX_BIND_HOST || '0.0.0.0', (err) => {
 
   let splash = '  Copyright 2020- SPX Graphics\n\n' +
   `  SPX Solo version .......... ${global.vers}\n` +  

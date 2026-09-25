@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newsline / Headline</title>
+  <link rel="stylesheet" href="./newsline.css">
+  <script defer src="./newsline.js"></script>
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "Newsline - 动态新闻标题条",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "3",
+      webplayout: "3",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "3",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "栏目", value: "要闻" },
+        { field: "f1", ftype: "textfield", title: "标题", value: "城市更新计划发布，公共空间焕发新活力" },
+        { field: "f2", ftype: "textfield", title: "补充信息", value: "聚焦民生与城市发展" },
+        { field: "f3", ftype: "textfield", title: "地点", value: "北京" },
+        {
+          field: "f4", ftype: "dropdown", title: "播出状态", value: "直播",
+          items: [
+            { text: "直播", value: "直播" },
+            { text: "报道", value: "报道" },
+            { text: "特别报道", value: "特别报道" }
+          ]
+        }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main id="stage" class="stage">
+    <section id="strap" class="strap" data-state="off" aria-label="新闻标题条">
+      <div class="accent-spine"></div>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span>N</span><i></i></div>
+        <div class="brand-name">NEWSLINE</div>
+        <div class="brand-cn">新闻现场</div>
+      </div>
+      <div class="panel">
+        <div class="meta">
+          <span class="section" id="section">要闻</span>
+          <span class="meta-divider"></span>
+          <span class="location" id="location">北京</span>
+          <span class="meta-rule"></span>
+          <span class="status" id="status">直播</span>
+          <span class="status-square" aria-hidden="true"></span>
+        </div>
+        <div class="content" id="content">
+          <div class="headline-viewport"><h1 id="headline">城市更新计划发布，公共空间焕发新活力</h1></div>
+          <div class="subline-viewport"><p id="subline">聚焦民生与城市发展</p></div>
+        </div>
+        <div class="edge-light" aria-hidden="true"></div>
+      </div>
+      <div class="baseline" aria-hidden="true"></div>
+    </section>
+  </main>
+</body>
+</html>

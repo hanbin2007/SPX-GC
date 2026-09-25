@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newsline / 动效预览</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, "PingFang SC", sans-serif; background: #e9edef; color: #182731; }
+    .toolbar { height: 62px; display: flex; align-items: center; gap: 10px; padding: 0 24px; background: #fff; border-bottom: 1px solid #cbd5d8; }
+    .toolbar strong { margin-right: auto; font-size: 15px; }
+    button { height: 36px; padding: 0 15px; background: #213943; border: 0; color: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+    button:hover { background: #365462; }
+    button:focus-visible { outline: 3px solid #c83a34; outline-offset: 2px; }
+    .viewport { width: min(calc(100vw - 48px), calc(100vh * 1.48), 1440px); aspect-ratio: 16 / 9; margin: 24px auto; position: relative; overflow: hidden; background: #566a70; }
+    .scene { position: absolute; inset: 0; background: linear-gradient(130deg, #495e64 0%, #9cacb0 55%, #53676d 100%); }
+    .scene::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 130px, rgb(255 255 255 / 8%) 130px 132px); }
+    .scene::after { content: "STUDIO  /  PREVIEW"; position: absolute; top: 14%; left: 8%; color: rgb(255 255 255 / 34%); font-size: 28px; font-weight: 700; }
+    iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>Newsline / 动效预览</strong>
+    <button id="in" type="button">入场</button>
+    <button id="switch" type="button">切换标题</button>
+    <button id="out" type="button">退场</button>
+    <button id="replay" type="button">重播</button>
+  </div>
+  <div class="viewport">
+    <div class="scene"></div>
+    <iframe id="graphic" src="./HEADLINE.html?demo=1" title="新闻标题条预览"></iframe>
+  </div>
+  <script>
+    const graphic = document.getElementById("graphic");
+    const samples = [
+      { f0: "要闻", f1: "城市更新计划发布，公共空间焕发新活力", f2: "聚焦民生与城市发展", f3: "北京", f4: "直播" },
+      { f0: "经济", f1: "新一轮科技创新成果集中亮相", f2: "多领域协同推动高质量发展", f3: "上海", f4: "报道" },
+      { f0: "国际", f1: "全球城市论坛聚焦绿色转型与区域合作", f2: "专家探讨可持续发展的新路径", f3: "日内瓦", f4: "特别报道" }
+    ];
+    let index = 0;
+    document.getElementById("in").onclick = () => graphic.contentWindow.play();
+    document.getElementById("out").onclick = () => graphic.contentWindow.stop();
+    document.getElementById("switch").onclick = () => {
+      index = (index + 1) % samples.length;
+      graphic.contentWindow.update(JSON.stringify(samples[index]));
+    };
+    document.getElementById("replay").onclick = () => {
+      graphic.contentWindow.stop();
+      setTimeout(() => graphic.contentWindow.play(), 480);
+    };
+  </script>
+</body>
+</html>

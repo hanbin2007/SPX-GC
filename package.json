@@ -14,7 +14,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "devORG": "nodemon server.js -i config.json -i DATAROOT/",
-    "dev": "nodemon server.js -i DATAROOT/* -i ASSETS/* -i config.json -i DATAROOT_VIDEO/*",
+    "dev": "SPX_BIND_HOST=127.0.0.1 nodemon --ignore 'DATAROOT/**' --ignore 'ASSETS/**' --ignore config.json --ignore 'DATAROOT_VIDEO/**' server.js",
     "devdemo": "nodemon server.js config_demodataroot.json -i DATAROOT_DEMO/* -i config_demodataroot.json",
     "dev2": "nodemon server.js config2.json -i DATAROOT/* -i config2.json",
     "start": "pm2 start server.js --name GC",
