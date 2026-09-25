@@ -453,11 +453,15 @@
     });
   }
 
-  // Full-screen card on air -> step aside; come back once it is leaving.
-  bus.watch("fullscreen", (on, initial) => {
-    ducked = on;
-    if (!initial) sync(on ? 0 : 260);
-  });
+  // Full-screen card or opener on air -> step aside; come back once it is leaving.
+  const cover = { fullscreen: false, opener: false };
+  for (const family of Object.keys(cover)) {
+    bus.watch(family, (on, initial) => {
+      cover[family] = on;
+      ducked = cover.fullscreen || cover.opener;
+      if (!initial) sync(ducked ? 0 : 260);
+    });
+  }
 
   setInterval(() => {
     const t = clockText();
