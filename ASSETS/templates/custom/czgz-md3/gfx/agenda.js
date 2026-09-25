@@ -96,6 +96,7 @@
 
   function render(raw, opts) {
     const live = opts.animate && visible;
+    badgeLogo.setMode(raw.f4, live);
     const nextItems = parseItems(raw.f2);
     const nextCur = Math.max(0, Math.min(nextItems.length + 1, parseInt(raw.f3, 10) || 0));
     const changed = JSON.stringify(nextItems) !== JSON.stringify(items);
@@ -230,6 +231,17 @@
     return Promise.all(jobs);
   }
 
+  // Badge logo follows the graphics logo group (published by the corner bug).
+  const badgeLogo = window.CZ.followLogo({
+    art: el.emblem,
+    fallback: "./img/emblem-mark.png",
+    live: () => visible,
+    onChange() {
+      rot += 30;
+      to(el.badge, { transform: `scale(1) rotate(${rot}deg)` }, { m: "sd" });
+    }
+  });
+
   poseOff();
 
   window.CZ.graphic({
@@ -238,7 +250,8 @@
       f0: "今日议程",
       f1: "2026年秋季学期开学典礼",
       f2: "08:30 | 升国旗、奏唱国歌\n08:40 | 校长开学致辞\n09:00 | 优秀学生表彰\n09:20 | 教师代表发言\n09:35 | 新生代表发言\n09:50 | 校歌合唱",
-      f3: "1"
+      f3: "1",
+      f4: "group"
     },
     render,
     enter,
@@ -251,9 +264,10 @@
     },
     idle: poseOff,
     snapshot() {
-      return { items, cur, rot, raw: { f0: CZ.slotText(el.title), f1: CZ.slotText(el.sub) } };
+      return { items, cur, rot, raw: { f0: CZ.slotText(el.title), f1: CZ.slotText(el.sub) }, logo: badgeLogo.snapshot() };
     },
     restore(s) {
+      badgeLogo.restore(s.logo);
       items = s.items || [];
       cur = s.cur || 0;
       rot = s.rot || 0;

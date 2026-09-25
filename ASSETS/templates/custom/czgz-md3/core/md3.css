@@ -139,6 +139,11 @@ html.cz-boot .stage { visibility: hidden; }
   will-change: transform;
 }
 
+.cz-badge__art {
+  position: absolute;
+  inset: 0;
+}
+
 .cz-badge__emblem {
   position: absolute;
   inset: 11%;

@@ -453,6 +453,81 @@
   })();
 
   /* ------------------------------------------------------------------ */
+  /* Badge logos and the graphics logo group                             */
+  /* The corner bug owns the logo library and publishes the group logo   */
+  /* ({type: "grouplogo"}). Badges that follow the group swap together.  */
+  /* ------------------------------------------------------------------ */
+
+  function artImage(src, scale = 1) {
+    const img = document.createElement("img");
+    img.className = "cz-badge__emblem";
+    img.alt = "";
+    img.src = src;
+    const size = 78 * Math.max(0.5, Math.min(1.2, scale || 1));
+    img.style.inset = `${(100 - size) / 2}%`;
+    img.style.width = `${size}%`;
+    img.style.height = `${size}%`;
+    return img;
+  }
+
+  /* Old art shrinks and turns away, new art pops in on the fast spring. */
+  function swapArt(container, img, animate) {
+    if (!animate) {
+      container.textContent = "";
+      if (img) container.appendChild(img);
+      return;
+    }
+    for (const old of [...container.children]) {
+      to(old, { transform: "scale(0.5) rotate(40deg)" }, { m: M.acc(200) });
+      to(old, { opacity: "0" }, { m: M.acc(150) }).then(() => old.remove());
+    }
+    if (!img) return;
+    container.appendChild(img);
+    set(img, { transform: "scale(0.5) rotate(-40deg)", opacity: "0" });
+    to(img, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 140 });
+    to(img, { opacity: "1" }, { m: "ef", delay: 140 });
+  }
+
+  /**
+   * Keeps a badge in step with the group logo.
+   * opts = { art, fallback (school image), live(): bool, onChange() }
+   */
+  function followLogo(opts) {
+    let mode = "group";
+    let entry = null;           // null = school
+    let shownKey = null;
+
+    function draw(animate) {
+      const e = mode === "group" && entry && entry.kind !== "school" ? entry : null;
+      const k = e ? `${e.key}|${e.scale || 1}` : "school";
+      if (k === shownKey) return;
+      shownKey = k;
+      swapArt(opts.art, artImage(e ? e.src : opts.fallback, e ? e.scale : 1), animate);
+      if (animate && opts.onChange) opts.onChange();
+    }
+
+    bus.on((msg) => {
+      if (msg.type !== "grouplogo") return;
+      entry = msg.logo || null;
+      draw(opts.live());
+    });
+    draw(false);
+
+    return {
+      setMode(next, animate) {
+        mode = next === "school" ? "school" : "group";
+        draw(animate);
+      },
+      snapshot: () => entry,
+      restore(e) {
+        entry = e || null;
+        shownKey = null;
+        draw(false);
+      }
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Graphic controller                                                  */
   /* ------------------------------------------------------------------ */
 
@@ -633,6 +708,7 @@
     decode, swap, snap, swapNode, snapNode, fit, slotText, current,
     SHAPES, shape, shapePx, shapePoints,
     fonts, images, bus, graphic, fitStage,
+    artImage, swapArt, followLogo,
     params
   };
 })();

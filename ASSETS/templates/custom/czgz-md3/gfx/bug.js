@@ -1,12 +1,16 @@
-/* Corner bug: rotating logo group + live status + clock.
-   Left group cycles through the school identity and any logos added to
-   ./logos/ (auto interval or manual). Square logos sit in the emblem badge
-   with their name beside it; wide logos get a white plate of their own.
+/* Corner bug: logo library + live status + clock.
+   The bug item holds the logo library: the built-in school identity plus up
+   to six logos from ./logos/, each with its own name, style, scale, dwell
+   time and use (bug / graphics group / both). Two carousels run from it:
+   - the bug's own logo group (badge + name plate, or a white plate for wide
+     logos), shown here;
+   - the graphics group logo, published on the bus ({type: "grouplogo"}) so
+     badges in the agenda card and straps switch together.
    Hides itself while a full-screen card is on air and returns afterwards. */
 (function () {
   "use strict";
 
-  const { to, set, swap, snap, swapNode, snapNode, fit, current, M, bus } = window.CZ;
+  const { to, set, swap, snap, swapNode, snapNode, fit, current, artImage, swapArt, M, bus } = window.CZ;
   const $ = (id) => document.getElementById(id);
   const el = {
     badgeWrap: $("badgeWrap"),
@@ -30,8 +34,8 @@
     replay: ["回放", "REPLAY"],
     record: ["录播", "RECORDED"]
   };
-  const LOGO_FIELDS = ["f5", "f6", "f7", "f8", "f9", "f10"];
-  const SCHOOL = { key: "school", kind: "school", name: "江苏省常州高级中学" };
+  const SLOTS = [1, 2, 3, 4, 5, 6];   // slot n uses fields f{n}0 … f{n}5
+  const SCALES = [0.7, 0.85, 1, 1.1, 1.2];
   const BADGE = 92;
   const BADGE_GAP = 10;
   const PLATE_PAD = 26 + 30;
@@ -40,10 +44,15 @@
   const WIDE_H = 44;
   const WIDE_MAX_W = 380;
 
-  let model = { mode: "live", event: "", clock: true, name: true, auto: true, interval: 8 };
-  let logos = [SCHOOL];
+  let model = { mode: "live", event: "", clock: true, name: true, auto: true, interval: 8, gmode: "auto", ginterval: 10 };
+  let school = { key: "school", kind: "school", sig: "school", secs: 0, bug: true, group: true, scale: 1 };
+  let logos = [school];       // bug carousel
   let idx = 0;
+  let groupLogos = [school];  // graphics group carousel
+  let gidx = 0;
   let shown = null;           // entry currently drawn in the badge / plate
+  let published = null;      // signature of the last published group logo
+  let gtimer = null;
   let W = { badge: BADGE, plate: PLATE_PAD + WORDMARK_W, event: 0, live: 0, clock: 0, light: false };
   let visible = false;
   let wanted = false;
@@ -84,29 +93,53 @@
     });
   }
 
-  function requested(raw) {
-    const list = [];
-    if (raw.f4 !== "0" && raw.f4 !== "false") list.push(SCHOOL);
-    for (const f of LOGO_FIELDS) {
-      const v = (raw[f] || "").trim();
-      if (v && v !== "none" && v !== "-") list.push({ key: v, kind: "image", src: v, name: nameFrom(v) });
-    }
-    return list;
+  function useOf(v, fallback) {
+    return { both: [true, true], bug: [true, false], group: [false, true], none: [false, false] }[v] || fallback;
   }
 
-  /* Build the carousel list; logos that fail to load are left out. */
+  function secsOf(v) {
+    const n = parseFloat(v);
+    return n > 0 ? Math.max(3, n) : 0;
+  }
+
+  function slotConfig(raw, n) {
+    const src = (raw[`f${n}0`] || "").trim();
+    if (!src || src === "none" || src === "-") return null;
+    const nameField = (raw[`f${n}1`] || "").trim();
+    const [bug, group] = useOf(raw[`f${n}5`], [true, false]);
+    const scale = SCALES.includes(parseFloat(raw[`f${n}3`])) ? parseFloat(raw[`f${n}3`]) : 1;
+    return {
+      key: src,
+      kind: "image",
+      src,
+      label: nameField === "-" ? "" : nameField || nameFrom(src),
+      style: ["badge", "plate"].includes(raw[`f${n}2`]) ? raw[`f${n}2`] : "auto",
+      scale,
+      secs: secsOf(raw[`f${n}4`]),
+      bug,
+      group
+    };
+  }
+
+  function requested(raw) {
+    return SLOTS.map((n) => slotConfig(raw, n)).filter(Boolean);
+  }
+
+  /* Build both carousels; logos that fail to load are left out. */
   function buildLogos(raw) {
-    const list = [];
+    const [sBug, sGroup] = useOf(raw.f4, [true, true]);
+    school = { key: "school", kind: "school", secs: secsOf(raw.f5), bug: sBug, group: sGroup, scale: 1 };
+    school.sig = "school";
+    const list = [school];
     for (const entry of requested(raw)) {
-      if (entry.kind === "school") {
-        list.push(entry);
-        continue;
-      }
       const size = cache.get(entry.src);
       if (!size) continue;
-      list.push({ ...entry, w: size.w, h: size.h, wide: size.w / size.h > WIDE });
+      const wide = entry.style === "plate" || (entry.style === "auto" && size.w / size.h > WIDE);
+      list.push({ ...entry, w: size.w, h: size.h, wide, sig: [entry.key, entry.label, wide, entry.scale].join("|") });
     }
-    return list.length ? list : [SCHOOL];
+    const bugList = list.filter((e) => e.bug);
+    const groupList = list.filter((e) => e.group);
+    return { bugList: bugList.length ? bugList : [school], groupList: groupList.length ? groupList : [school] };
   }
 
   /* ---------------- Clock ---------------- */
@@ -138,30 +171,27 @@
       img.className = "bug-plate__logo";
       img.alt = "";
       img.src = entry.src;
-      let h = WIDE_H;
+      let h = Math.min(56, WIDE_H * entry.scale);
       let w = (h * entry.w) / entry.h;
-      if (w > WIDE_MAX_W) {
-        w = WIDE_MAX_W;
+      const maxW = WIDE_MAX_W * Math.max(1, entry.scale);
+      if (w > maxW) {
+        w = maxW;
         h = (w * entry.h) / entry.w;
       }
       img.style.width = `${Math.round(w)}px`;
       img.style.height = `${Math.round(h)}px`;
       return img;
     }
-    if (!model.name || !entry.name) return null;
+    if (!model.name || !entry.label) return null;
     const span = document.createElement("span");
     span.className = "bug-plate__name";
-    span.textContent = entry.name;
+    span.textContent = entry.label;
     return span;
   }
 
   function artNode(entry) {
     if (entry.wide) return null;
-    const img = document.createElement("img");
-    img.className = "cz-badge__emblem";
-    img.alt = "";
-    img.src = entry.kind === "school" ? "./img/emblem-mark.png" : entry.src;
-    return img;
+    return entry.kind === "school" ? artImage("./img/emblem-mark.png", 1) : artImage(entry.src, entry.scale);
   }
 
   function plateWidth(node) {
@@ -198,8 +228,8 @@
   /* Draw a logo entry. Animated: badge ticks one scallop, the old art
      shrinks away, segments spring to the new widths, new content rises. */
   function drawLogo(entry, animate) {
-    const prev = shown;
     shown = entry;
+    if (model.gmode === "sync") publish(entry);
     const art = artNode(entry);
     const node = plateNode(entry);
     const wasBadge = W.badge > 0;
@@ -208,8 +238,7 @@
     el.plate.classList.toggle("is-light", W.light);
 
     if (!animate) {
-      el.art.textContent = "";
-      if (art) el.art.appendChild(art);
+      swapArt(el.art, art, false);
       if (node) snapNode(el.plateSlot, node);
       else el.plateSlot.textContent = "";
       W.plate = plateWidth(node);
@@ -217,16 +246,7 @@
     }
 
     // Badge art
-    for (const old of [...el.art.children]) {
-      to(old, { transform: "scale(0.5) rotate(40deg)" }, { m: M.acc(200) });
-      to(old, { opacity: "0" }, { m: M.acc(150) }).then(() => old.remove());
-    }
-    if (art) {
-      el.art.appendChild(art);
-      set(art, { transform: "scale(0.5) rotate(-40deg)", opacity: "0" });
-      to(art, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 140 });
-      to(art, { opacity: "1" }, { m: "ef", delay: 140 });
-    }
+    swapArt(el.art, art, true);
 
     // Badge shape: tick when it stays, pop in/out when a wide logo comes or goes
     if (art && wasBadge) {
@@ -250,47 +270,90 @@
     W.plate = plateWidth(node);
     measureRight();
     segs(true);
-    if (prev && prev.key !== entry.key) bus.post({ type: "logo", key: entry.key });
   }
 
   function schedule() {
     clearTimeout(timer);
     timer = null;
     if (!visible || !model.auto || logos.length < 2) return;
-    timer = setTimeout(() => step(1), Math.max(3, model.interval) * 1000);
+    timer = setTimeout(() => step(1), (logos[idx].secs || model.interval) * 1000);
   }
 
   function step(n) {
     if (logos.length < 2) return;
     idx = (idx + n + logos.length * 10) % logos.length;
-    if (visible) drawLogo(logos[idx], true);
-    else drawLogo(logos[idx], false);
+    drawLogo(logos[idx], visible);
     schedule();
   }
+
+  /* ---------------- Graphics group logo ---------------- */
+
+  function publish(entry, force) {
+    const sig = entry.sig || entry.key;
+    if (sig === published && !force) return;
+    published = sig;
+    bus.post({
+      type: "grouplogo",
+      logo: entry.kind === "school" ? { key: "school", kind: "school" } : { key: entry.key, kind: "image", src: entry.src, scale: entry.scale }
+    });
+  }
+
+  function scheduleGroup() {
+    clearTimeout(gtimer);
+    gtimer = null;
+    if (model.gmode !== "auto" || groupLogos.length < 2) return;
+    gtimer = setTimeout(() => stepGroup(1), (groupLogos[gidx].secs || model.ginterval) * 1000);
+  }
+
+  function stepGroup(n) {
+    if (model.gmode === "sync") {
+      step(n);
+      return;
+    }
+    if (groupLogos.length < 2) return;
+    gidx = (gidx + n + groupLogos.length * 10) % groupLogos.length;
+    publish(groupLogos[gidx]);
+    scheduleGroup();
+  }
+
+  // A graphic that just loaded asks who is around: tell it the group logo.
+  bus.on((msg) => {
+    if (msg.type !== "hello") return;
+    const entry = model.gmode === "sync" ? shown : groupLogos[gidx];
+    if (entry) publish(entry, true);
+  });
 
   /* ---------------- Render ---------------- */
 
   function render(raw, opts) {
     const prev = model;
-    const interval = parseFloat(raw.f12);
     model = {
       mode: raw.f0 in MODES ? raw.f0 : "none",
       event: raw.f1 || "",
       clock: raw.f2 !== "0" && raw.f2 !== "false",
       name: raw.f3 !== "0" && raw.f3 !== "false",
-      auto: raw.f11 !== "manual",
-      interval: interval > 0 ? interval : 8
+      auto: raw.f70 !== "manual",
+      interval: secsOf(raw.f71) || 8,
+      gmode: ["manual", "sync"].includes(raw.f72) ? raw.f72 : "auto",
+      ginterval: secsOf(raw.f73) || 10
     };
     const live = opts.animate && visible;
 
-    // Logo list: keep showing the current logo if it is still in the list.
-    const list = buildLogos(raw);
-    const curKey = shown ? shown.key : null;
-    const keep = list.findIndex((e) => e.key === curKey);
-    logos = list;
+    // Carousels: keep showing the current logo if it is still in the list.
+    const { bugList, groupList } = buildLogos(raw);
+    const keep = shown ? bugList.findIndex((e) => e.key === shown.key) : -1;
+    logos = bugList;
     idx = keep >= 0 ? keep : 0;
     const entry = logos[idx];
-    const redraw = !shown || shown.key !== entry.key || prev.name !== model.name;
+    const redraw = !shown || shown.sig !== entry.sig || prev.name !== model.name;
+
+    const gcur = groupLogos[gidx];
+    const gkeep = gcur ? groupList.findIndex((e) => e.key === gcur.key) : -1;
+    groupLogos = groupList;
+    gidx = gkeep >= 0 ? gkeep : 0;
+    if (model.gmode === "sync") publish(entry);
+    else publish(groupLogos[gidx]);
+    scheduleGroup();
 
     const words = MODES[model.mode] || MODES[prev.mode] || MODES.live;
     el.live.dataset.mode = model.mode;
@@ -424,6 +487,7 @@
 
   /* Manual switching, callable from SPX (button field / invoke) or a page. */
   window.czLogoStep = (n) => step(parseInt(n, 10) || 1);
+  window.czGroupStep = (n) => stepGroup(parseInt(n, 10) || 1);
   window.czLogoShow = (i) => {
     const target = Math.max(0, Math.min(logos.length - 1, (parseInt(i, 10) || 1) - 1));
     if (target === idx) return;
@@ -437,7 +501,7 @@
 
   window.CZ.graphic({
     family: "bug",
-    defaults: { f0: "live", f1: "", f2: "1", f3: "1", f4: "1", f5: "", f6: "", f7: "", f8: "", f9: "", f10: "", f11: "auto", f12: "8" },
+    defaults: { f0: "live", f1: "", f2: "1", f3: "1", f4: "both", f5: "", f70: "auto", f71: "8", f72: "auto", f73: "10" },
     preload: ["./img/emblem-mark.png"],
     prepare(raw) {
       return Promise.all(requested(raw).filter((e) => e.kind === "image").map((e) => measureImage(e.src)));
@@ -455,15 +519,17 @@
       if (!visible) poseOff();
     },
     snapshot() {
-      return { model, logos, idx, rot };
+      return { model, logos, idx, groupLogos, gidx, rot };
     },
     restore(s) {
       if (s.model) model = s.model;
-      if (s.logos && s.logos.length) {
-        logos = s.logos;
-        for (const e of logos) if (e.kind === "image") cache.set(e.src, { w: e.w, h: e.h });
-      }
+      if (s.logos && s.logos.length) logos = s.logos;
+      if (s.groupLogos && s.groupLogos.length) groupLogos = s.groupLogos;
+      for (const e of [...logos, ...groupLogos]) if (e.kind === "image") cache.set(e.src, { w: e.w, h: e.h });
       idx = Math.min(s.idx || 0, logos.length - 1);
+      gidx = Math.min(s.gidx || 0, groupLogos.length - 1);
+      publish(model.gmode === "sync" ? logos[idx] : groupLogos[gidx], true);
+      scheduleGroup();
       rot = s.rot || 0;
       const words = MODES[model.mode] || MODES.live;
       el.live.dataset.mode = model.mode;
