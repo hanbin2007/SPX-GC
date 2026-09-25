@@ -136,7 +136,7 @@
   letter-spacing: 0.01em;
 }
 
-.fs-title .cz-t {
+.cz-slot.is-block.fs-title > .cz-t {
   line-height: 1.18;
   white-space: pre-line;
   text-wrap: balance;
