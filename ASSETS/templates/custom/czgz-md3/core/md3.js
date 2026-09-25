@@ -180,7 +180,8 @@
       t.innerHTML = s;
       s = t.value;
     }
-    return s.trim();
+    // SPX serializes textarea newlines as escaped <br> before playout.
+    return s.replace(/<br\s*\/?>|\\n/gi, "\n").trim();
   }
 
   function current(slot) {
