@@ -1,0 +1,169 @@
+/* Agenda card (right side). The current item carries an M3 active indicator. */
+
+.ag {
+  position: absolute;
+  top: 150px;
+  right: var(--safe-x);
+  width: 640px;
+  filter: var(--elev-3);
+}
+
+.ag-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  color: var(--on-surface);
+}
+
+.ag-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 132px;
+  padding: 0 32px 0 28px;
+}
+
+.ag-badge { --badge: 80px; margin-right: 20px; }
+.ag-badge .cz-badge__shape { background: var(--teal-soft); }
+
+.ag-heading { flex: 1; min-width: 0; }
+
+.ag-title {
+  display: block;
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--navy-ink);
+  letter-spacing: 0.02em;
+}
+
+.ag-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--on-surface-var);
+}
+
+.ag-count {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: "ROND" 100;
+}
+
+.ag-count .cz-slot { min-width: 0.62em; text-align: center; }
+.ag-count .ag-count__of { margin-left: 8px; opacity: 0.72; }
+
+.ag-list {
+  position: relative;
+  padding: 0 16px 18px;
+}
+
+.ag-indicator {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 76px;
+}
+
+.ag-indicator > b {
+  position: absolute;
+  inset: 0;
+  border-radius: 38px;
+  background: var(--teal-soft);
+}
+
+.ag-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 76px;
+  margin-bottom: 4px;
+  padding: 0 26px 0 16px;
+}
+
+.ag-row:last-child { margin-bottom: 0; }
+
+.ag-bubble {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface-high);
+  color: var(--on-surface-var);
+  transition:
+    background-color var(--ed-d) var(--ed-e),
+    color var(--ed-d) var(--ed-e),
+    border-radius var(--sd-d) var(--sd-e);
+}
+
+.ag-bubble > span,
+.ag-bubble > svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  transition:
+    transform var(--sf-d) var(--sf-e),
+    opacity var(--ed-d) var(--ed-e);
+}
+
+.ag-bubble > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ag-bubble > svg {
+  width: 26px;
+  height: 26px;
+  opacity: 0;
+  transform: scale(0.3) rotate(-45deg);
+}
+
+.ag-time {
+  flex: none;
+  margin-left: 18px;
+  font-size: 25px;
+  font-weight: 650;
+  color: var(--teal-strong);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--ed-d) var(--ed-e);
+}
+
+.ag-text {
+  flex: 1;
+  min-width: 0;
+  margin-left: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--on-surface);
+  transition: color var(--ed-d) var(--ed-e);
+}
+
+/* States */
+.ag-row.is-done .ag-bubble { background: var(--teal-strong); color: #ffffff; }
+.ag-row.is-done .ag-bubble > span { opacity: 0; transform: scale(0.3); }
+.ag-row.is-done .ag-bubble > svg { opacity: 1; transform: scale(1) rotate(0deg); }
+.ag-row.is-done .ag-text,
+.ag-row.is-done .ag-time { color: #7d889b; }
+
+.ag-row.is-current .ag-bubble { background: var(--navy); color: #ffffff; border-radius: 16px; }
+.ag-row.is-current .ag-text { color: var(--navy-ink); font-weight: 650; }
+.ag-row.is-current .ag-time { color: var(--navy); }

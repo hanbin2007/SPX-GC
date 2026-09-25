@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="cz-boot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>常州高级中学 · 台标角标</title>
+  <link rel="stylesheet" href="./core/md3.css">
+  <link rel="stylesheet" href="./gfx/bug.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "常高 M3 · 台标角标（校徽 + 直播状态 + 时钟）",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "40",
+      webplayout: "4",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "1",
+      DataFields: [
+        {
+          field: "f0", ftype: "dropdown", title: "状态", value: "live",
+          items: [
+            { text: "直播 LIVE", value: "live" },
+            { text: "回放 REPLAY", value: "replay" },
+            { text: "录播 RECORDED", value: "record" },
+            { text: "不显示", value: "none" }
+          ]
+        },
+        { field: "f1", ftype: "textfield", title: "活动名称（可留空）", value: "" },
+        { field: "f2", ftype: "checkbox", title: "显示时钟", value: "1" },
+        { field: "f3", ftype: "checkbox", title: "显示校名", value: "1" },
+        { ftype: "instruction", value: "全屏卡播出时角标自动隐藏，全屏卡收起后自动回来。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="bug-brand" aria-label="台标">
+      <div class="cz-badge bug-badge">
+        <div class="bug-spin"><div class="cz-badge__shape" id="badgeShape"></div></div>
+        <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+      </div>
+      <div class="bug-seg bug-plate" id="plate"><i class="cz-wordmark is-short" id="wordmark"></i></div>
+      <div class="bug-seg bug-event" id="event"><div class="cz-slot" id="eventSlot"></div></div>
+    </div>
+    <div class="bug-status" aria-label="直播状态">
+      <div class="bug-seg bug-live" id="live" data-mode="live">
+        <div class="bug-live__in" id="liveIn">
+          <span class="cz-live-dot"></span>
+          <span class="cz-slot bug-live__cn" id="liveCn"></span>
+          <span class="cz-slot bug-live__en" id="liveEn"></span>
+        </div>
+      </div>
+      <div class="bug-seg bug-clock" id="clock">
+        <div class="bug-clock__in" id="clockIn">
+          <span class="cz-slot" id="d0"></span><span class="cz-slot" id="d1"></span><span class="colon">:</span><span class="cz-slot" id="d2"></span><span class="cz-slot" id="d3"></span>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="./core/md3.js"></script>
+  <script src="./gfx/bug.js"></script>
+</body>
+</html>
