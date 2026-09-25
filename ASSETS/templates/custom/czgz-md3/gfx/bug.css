@@ -1,0 +1,137 @@
+/* Corner bug. Left: [emblem] [calligraphy plate] [event chip].
+   Right: [status chip] [clock]. */
+
+.bug-brand {
+  position: absolute;
+  left: 72px;
+  top: 50px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  filter: var(--elev-2);
+}
+
+.bug-badge {
+  --badge: 92px;
+  margin-right: 10px;
+}
+
+.bug-spin {
+  position: absolute;
+  inset: 0;
+  animation: cz-spin 72s linear infinite;
+}
+
+.bug-seg {
+  transition: border-radius var(--sd-d) var(--sd-e);
+  position: relative;
+  flex: none;
+  width: 0;
+  height: 64px;
+  overflow: hidden;
+}
+
+.bug-plate {
+  border-radius: var(--seg-inner) 32px 32px var(--seg-inner);
+  background: var(--navy);
+  color: var(--on-navy);
+}
+
+.bug-plate .cz-wordmark {
+  position: absolute;
+  left: 26px;
+  top: 15px;
+  height: 34px;
+}
+
+.bug-event {
+  border-radius: var(--seg-inner) 32px 32px var(--seg-inner);
+  background: var(--teal);
+  color: var(--on-teal);
+}
+
+.bug-event .cz-slot {
+  position: absolute;
+  left: 26px;
+  top: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.bug-status {
+  position: absolute;
+  right: 72px;
+  top: 70px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  filter: var(--elev-2);
+}
+
+.bug-status .bug-seg { height: 52px; }
+
+.bug-live {
+  border-radius: 26px var(--seg-inner) var(--seg-inner) 26px;
+  background: var(--live);
+  color: var(--on-live);
+  transition: background-color var(--ed-d) var(--ed-e);
+}
+
+.bug-live[data-mode="replay"] { background: var(--navy); }
+.bug-live[data-mode="record"] { background: var(--teal-strong); }
+
+.bug-live__in {
+  position: absolute;
+  left: 22px;
+  top: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.bug-live .cz-live-dot { margin-right: 12px; }
+.bug-live:not([data-mode="live"]) .cz-live-dot::after { animation: none; opacity: 0; }
+
+.bug-live__cn {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.bug-live__en {
+  margin-left: 10px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  opacity: 0.86;
+}
+
+.bug-clock {
+  border-radius: var(--seg-inner) 26px 26px var(--seg-inner);
+  background: var(--surface);
+  color: var(--navy);
+}
+
+.bug-clock__in {
+  position: absolute;
+  left: 22px;
+  top: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  font-size: 28px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: "ROND" 100;
+}
+
+.bug-clock__in .cz-slot { width: 0.62em; text-align: center; }
+.bug-clock__in .colon { width: 0.34em; text-align: center; transform: translateY(-2px); }
+
+/* Only one segment on a side -> both outer corners go full-round. */
+.bug-live.is-alone { border-radius: 26px; }
+.bug-clock.is-alone { border-radius: 26px; }
+.bug-plate.is-alone { border-radius: var(--seg-inner) 32px 32px var(--seg-inner); }
+.bug-plate.has-next { border-radius: var(--seg-inner); }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="cz-boot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>常州高级中学 · 转场</title>
+  <link rel="stylesheet" href="./core/md3.css">
+  <link rel="stylesheet" href="./gfx/transition.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "常高 M3 · 转场（遮挡约 0.7 秒后切机位）",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "50",
+      webplayout: "5",
+      steps: "1",
+      out: "none",
+      dataformat: "json",
+      uicolor: "6",
+      DataFields: [
+        {
+          field: "f0", ftype: "dropdown", title: "遮挡停留", value: "normal",
+          items: [
+            { text: "短（0.15 秒）", value: "short" },
+            { text: "标准（0.38 秒）", value: "normal" },
+            { text: "长（0.9 秒）", value: "long" }
+          ]
+        },
+        { field: "f1", ftype: "checkbox", title: "显示校名", value: "1" },
+        { ftype: "instruction", value: "点播放即完整走一遍，无需收起。画面在 0.7 秒左右被完全遮挡，此时在切换台切机位。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <section class="st" aria-hidden="true">
+      <div class="st-layer st-teal" id="teal"></div>
+      <div class="st-layer st-navy" id="navy">
+        <div class="st-center">
+          <div class="cz-badge st-badge">
+            <div class="cz-badge__shape" id="badgeShape"></div>
+            <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+          </div>
+          <i class="cz-wordmark st-word" id="word"></i>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="./core/md3.js"></script>
+  <script src="./gfx/transition.js"></script>
+</body>
+</html>

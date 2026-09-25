@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="cz-boot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>常州高级中学 · 全屏卡</title>
+  <link rel="stylesheet" href="./core/md3.css">
+  <link rel="stylesheet" href="./gfx/fullscreen.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "常高 M3 · 全屏卡（即将开始 / 中场休息 / 感谢观看）",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "10",
+      webplayout: "1",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "7",
+      DataFields: [
+        {
+          field: "f0", ftype: "dropdown", title: "场景", value: "starting",
+          items: [
+            { text: "直播即将开始", value: "starting" },
+            { text: "中场休息", value: "break" },
+            { text: "感谢观看", value: "end" },
+            { text: "自定义提示语", value: "custom" }
+          ]
+        },
+        { field: "f7", ftype: "textfield", title: "自定义提示语（场景为自定义时）", value: "" },
+        { field: "f1", ftype: "textarea", title: "主标题（最多两行，可手动换行）", value: "江苏省常州高级中学\n第六十八届田径运动会" },
+        { field: "f2", ftype: "textfield", title: "副标题 / 时间地点", value: "2026年10月18日 · 学校田径场" },
+        {
+          field: "f3", ftype: "dropdown", title: "右侧圆形区域", value: "countdown",
+          items: [
+            { text: "倒计时", value: "countdown" },
+            { text: "当前时间", value: "time" },
+            { text: "校徽", value: "emblem" }
+          ]
+        },
+        { field: "f5", ftype: "textfield", title: "倒计时时长（分钟，从播出起算）", value: "5" },
+        { field: "f4", ftype: "textfield", title: "或：倒计时到某时刻（如 19:30，时长为空时生效）", value: "" },
+        {
+          field: "f6", ftype: "dropdown", title: "配色", value: "dark",
+          items: [
+            { text: "藏青（深色）", value: "dark" },
+            { text: "月白（浅色）", value: "light" }
+          ]
+        },
+        { ftype: "instruction", value: "播出时角标自动隐藏。播出中更新场景/配色会原地形变；同层播放另一张全屏卡会无缝接续，不会闪黑。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <section class="fs" id="fs" aria-label="全屏卡">
+      <div class="fs-deco" aria-hidden="true">
+        <i class="deco-halo"><b></b></i>
+        <i class="deco-pill"><b></b></i>
+        <i class="deco-clover"><b></b></i>
+        <i class="deco-dot"><b></b></i>
+        <i class="deco-spark"><b></b></i>
+        <i class="deco-sun"><b></b></i>
+      </div>
+
+      <header class="fs-brand">
+        <div class="cz-badge fs-badge">
+          <div class="cz-badge__shape" id="badgeShape"></div>
+          <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+        </div>
+        <div class="fs-names">
+          <i class="cz-wordmark" id="wordmark"></i>
+          <span class="fs-en" id="en">CHANGZHOU SENIOR HIGH SCHOOL OF JIANGSU PROVINCE</span>
+        </div>
+      </header>
+
+      <div class="fs-main">
+        <div class="fs-eyebrow" id="eyebrow">
+          <span class="cz-live-dot"></span>
+          <span class="cz-slot fs-eyebrow__cn" id="eyeCn"></span>
+          <span class="cz-slot fs-eyebrow__en" id="eyeEn"></span>
+        </div>
+        <div class="fs-titlebox" id="titlebox"><div class="cz-slot is-block fs-title" id="title"></div></div>
+        <div class="fs-subbox" id="subbox"><div class="cz-slot fs-sub" id="sub"></div></div>
+      </div>
+
+      <div class="fs-orb" id="orb">
+        <div class="fs-orb__moon" id="moon"><b></b></div>
+        <div class="fs-orb__shape" id="orbShape"><b></b></div>
+        <div class="fs-orb__face" id="face">
+          <div class="cz-slot fs-orb__label" id="orbLabel"></div>
+          <div class="fs-orb__digits" id="digits"></div>
+          <div class="cz-slot fs-orb__note" id="orbNote"></div>
+        </div>
+        <div class="fs-orb__emblem" id="orbEmblem"><img src="./img/emblem.png" alt=""></div>
+      </div>
+    </section>
+  </main>
+  <script src="./core/md3.js"></script>
+  <script src="./gfx/fullscreen.js"></script>
+</body>
+</html>

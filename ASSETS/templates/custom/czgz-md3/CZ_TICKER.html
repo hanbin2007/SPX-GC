@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="cz-boot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>常州高级中学 · 滚动字幕</title>
+  <link rel="stylesheet" href="./core/md3.css">
+  <link rel="stylesheet" href="./gfx/ticker.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "常高 M3 · 滚动字幕",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "30",
+      webplayout: "3",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "4",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "栏目", value: "校园快讯" },
+        { field: "f1", ftype: "textarea", title: "字幕内容（每行一条）", value: "欢迎收看江苏省常州高级中学直播\n第六十八届田径运动会今日上午八时开幕\n高一新生军训汇报表演将于下午两点举行\n本场直播由校学生会融媒体中心制作" },
+        {
+          field: "f2", ftype: "dropdown", title: "滚动速度", value: "normal",
+          items: [
+            { text: "慢", value: "slow" },
+            { text: "标准", value: "normal" },
+            { text: "快", value: "fast" }
+          ]
+        },
+        { ftype: "instruction", value: "播出中更新：屏幕上的字幕滚完后无缝接上新内容，不会从头重来。播出时人名条/标题条会自动上移让位。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <section class="ticker" id="ticker" aria-label="滚动字幕">
+      <div class="tk-label" id="label">
+        <span class="tk-label__icon" id="icon"><i></i></span>
+        <div class="cz-slot" id="labelSlot"></div>
+      </div>
+      <div class="tk-body" id="body">
+        <div class="tk-viewport" id="viewport"><div class="tk-track" id="track"></div></div>
+      </div>
+    </section>
+  </main>
+  <script src="./core/md3.js"></script>
+  <script src="./gfx/ticker.js"></script>
+</body>
+</html>
