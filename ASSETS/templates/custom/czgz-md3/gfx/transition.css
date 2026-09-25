@@ -1,0 +1,36 @@
+/* Stinger: teal and navy 12-sided cookies cover the frame, the emblem pops,
+   then the cookies open as holes to reveal the new shot. */
+
+.st { position: absolute; inset: 0; }
+
+.st-layer {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 0, 0 0, 0 0);
+  will-change: clip-path;
+}
+
+.st-teal { background: var(--teal); }
+.st-navy {
+  background: radial-gradient(circle at 50% 50%, #1f4a86 0, var(--navy) 38%, var(--navy-deep) 100%);
+}
+
+.st-center {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.st-badge { --badge: 236px; }
+
+.st-word {
+  height: 62px;
+  margin-top: 40px;
+  color: #ffffff;
+}

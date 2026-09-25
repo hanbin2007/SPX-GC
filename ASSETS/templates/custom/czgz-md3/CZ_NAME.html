@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="cz-boot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>常州高级中学 · 人名条</title>
+  <link rel="stylesheet" href="./core/md3.css">
+  <link rel="stylesheet" href="./gfx/strap.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "常高 M3 · 人名条（与标题条同层可无缝切换）",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "20",
+      webplayout: "2",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "2",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "姓名", value: "张明远" },
+        { field: "f1", ftype: "textfield", title: "身份 / 职务", value: "高二（3）班 · 学生会主席" },
+        { field: "f2", ftype: "textfield", title: "标签（可留空）", value: "主持人" },
+        {
+          field: "f3", ftype: "dropdown", title: "位置", value: "left",
+          items: [
+            { text: "左侧", value: "left" },
+            { text: "右侧", value: "right" }
+          ]
+        },
+        { ftype: "instruction", value: "同一层播放“标题条”会从当前人名条形变过去；滚动字幕在播时自动上移。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="zone" id="zone">
+      <section class="strap" id="strap" aria-label="人名条">
+        <div class="cz-badge strap-badge">
+          <div class="cz-badge__shape" id="badgeShape"></div>
+          <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+        </div>
+        <div class="strap-kicker" id="kicker"><div class="strap-kicker__in" id="kickerIn"><div class="cz-slot" id="kickerSlot"></div></div></div>
+        <div class="strap-card" id="card">
+          <div class="strap-deco" id="deco"></div>
+          <div class="strap-inner">
+            <div class="strap-line"><div class="strap-line__in" id="line1In">
+              <div class="cz-slot strap-title" id="title"></div>
+              <span class="strap-tag" id="tag"><span class="cz-slot" id="tagSlot"></span></span>
+            </div></div>
+            <div class="strap-line is-sub" id="line2"><div class="strap-line__in" id="line2In">
+              <div class="cz-slot strap-sub" id="sub"></div>
+            </div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="./core/md3.js"></script>
+  <script src="./gfx/strap.js"></script>
+  <script>
+    CZStrap({
+      defaults: { f0: "张明远", f1: "高二（3）班 · 学生会主席", f2: "主持人", f3: "left" },
+      model: (d) => ({ side: d.f3 === "right" ? "right" : "left", kicker: "", title: d.f0, tag: d.f2, sub: d.f1 })
+    });
+  </script>
+</body>
+</html>

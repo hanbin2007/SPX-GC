@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="cz-boot">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>常州高级中学 · 标题条</title>
+  <link rel="stylesheet" href="./core/md3.css">
+  <link rel="stylesheet" href="./gfx/strap.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "常高 M3 · 标题条（与人名条同层可无缝切换）",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "20",
+      webplayout: "2",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "2",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "栏目（左侧色块，可留空）", value: "开学典礼" },
+        { field: "f1", ftype: "textfield", title: "主标题", value: "2026年秋季学期开学典礼暨表彰大会" },
+        { field: "f2", ftype: "textfield", title: "副标题（可留空）", value: "学校体育馆 · 全校师生共同参与" },
+        { ftype: "instruction", value: "同一层播放“人名条”会从当前标题条形变过去；滚动字幕在播时自动上移。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="stage" id="stage">
+    <div class="zone" id="zone">
+      <section class="strap" id="strap" aria-label="标题条">
+        <div class="cz-badge strap-badge">
+          <div class="cz-badge__shape" id="badgeShape"></div>
+          <img class="cz-badge__emblem" id="badgeEmblem" src="./img/emblem.png" alt="">
+        </div>
+        <div class="strap-kicker" id="kicker"><div class="strap-kicker__in" id="kickerIn"><div class="cz-slot" id="kickerSlot"></div></div></div>
+        <div class="strap-card" id="card">
+          <div class="strap-deco" id="deco"></div>
+          <div class="strap-inner">
+            <div class="strap-line"><div class="strap-line__in" id="line1In">
+              <div class="cz-slot strap-title" id="title"></div>
+              <span class="strap-tag" id="tag"><span class="cz-slot" id="tagSlot"></span></span>
+            </div></div>
+            <div class="strap-line is-sub" id="line2"><div class="strap-line__in" id="line2In">
+              <div class="cz-slot strap-sub" id="sub"></div>
+            </div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="./core/md3.js"></script>
+  <script src="./gfx/strap.js"></script>
+  <script>
+    CZStrap({
+      defaults: { f0: "开学典礼", f1: "2026年秋季学期开学典礼暨表彰大会", f2: "学校体育馆 · 全校师生共同参与" },
+      model: (d) => ({ side: "left", kicker: d.f0, title: d.f1, tag: "", sub: d.f2 })
+    });
+  </script>
+</body>
+</html>
