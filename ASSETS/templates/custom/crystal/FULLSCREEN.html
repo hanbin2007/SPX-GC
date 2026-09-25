@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  CRYSTAL 晶华新闻 · FULLSCREEN 全屏图文              SPX web layer 1
+  While on air, lower thirds step aside and come back when it leaves.
+  Continue reveals the points one by one. Content clears the TICKER band.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>晶华新闻 · 全屏图文</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <style>
+    .fs-canvas {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: radial-gradient(1500px 950px at 50% 26%, #1c4ca6 0%, #0b2a6c 42%, #041332 100%);
+      opacity: 0;
+      transform: scale(1.04);
+    }
+
+    /* ---- ambient light ---- */
+    .fs-rays {
+      position: absolute;
+      left: 50%;
+      top: -1300px;
+      width: 2600px;
+      height: 2600px;
+      margin-left: -1300px;
+      background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 5.5%) 0deg 2.5deg, transparent 2.5deg 11deg);
+      -webkit-mask-image: radial-gradient(circle, #000 12%, rgb(0 0 0 / 55%) 32%, transparent 52%);
+              mask-image: radial-gradient(circle, #000 12%, rgb(0 0 0 / 55%) 32%, transparent 52%);
+      animation: fs-rotate 140s linear infinite;
+      animation-play-state: paused;
+    }
+    @keyframes fs-rotate { to { transform: rotate(360deg); } }
+    .fs-streak {
+      position: absolute;
+      left: -10%;
+      right: -10%;
+      top: 368px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgb(150 200 255 / 40%) 30%, rgb(255 245 220 / 80%) 50%, rgb(150 200 255 / 40%) 70%, transparent);
+      box-shadow: 0 0 24px rgb(140 190 255 / 50%);
+      opacity: .55;
+    }
+    .fs-bokeh i {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--c, rgb(255 230 180 / 35%)) 0%, transparent 70%);
+      animation: fs-float var(--d, 18s) ease-in-out infinite alternate;
+      animation-play-state: paused;
+    }
+    @keyframes fs-float { to { transform: translate3d(var(--x, 60px), var(--y, -40px), 0); } }
+    .nl-root[data-show="1"] .fs-rays,
+    .nl-root[data-show="1"] .fs-bokeh i { animation-play-state: running; }
+
+    .fs-burst {
+      position: absolute;
+      left: 50%;
+      top: 36%;
+      width: 1400px;
+      height: 1400px;
+      margin: -700px 0 0 -700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(210 230 255 / 30%) 18%, transparent 55%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    @keyframes fs-burst {
+      0%   { opacity: 0; transform: scale(.3); }
+      30%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.3); }
+    }
+
+    /* ---- content ---- */
+    /* starts below the top-left station logo (BUG, layer 5) */
+    .fs-content { position: absolute; left: 144px; right: 144px; top: 196px; transition: transform var(--t-layout) var(--ease-move); }
+    .fs-kicker { position: relative; display: flex; align-items: center; height: 50px; }
+    .fs-cap { display: flex; align-items: center; height: 50px; font-size: 28px; font-weight: 700; letter-spacing: .16em; border-radius: 4px; clip-path: inset(0 100% 0 0); }
+    .fs-cap .nl-swap__item { padding: 0 26px; }
+    .fs-kline { position: relative; flex: 1; height: 3px; margin-left: 20px; transform: scaleX(0); transform-origin: 0 50%; }
+    .fs-kline-wrap { position: relative; flex: 1; display: flex; align-items: center; }
+    .fs-kline-wrap .cr-flare { left: 20px; --run: 1400px; }
+
+    .fs-rise { display: block; opacity: 0; transform: translate3d(0, 34px, 0); }
+
+    .fs-titlebox { height: 180px; margin-top: 26px; overflow: hidden; transform-origin: 0 0; transition: transform var(--t-layout) var(--ease-move); }
+    .fs-title {
+      width: 1632px;
+      color: #fff;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 88px;
+      letter-spacing: .04em;
+      text-shadow: 0 2px 0 rgb(0 10 40 / 40%), 0 0 30px rgb(120 180 255 / 35%);
+    }
+    .fs-title .nl-swap__item { -webkit-line-clamp: 2; overflow: hidden; }
+    .is-card .fs-content { transform: translate3d(0, 170px, 0); }
+    .is-card .fs-titlebox { transform: scale(1.16); }
+
+    .fs-card {
+      position: relative;
+      margin-top: 26px;
+      padding: 14px 0;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgb(255 255 255 / 13%) 0%, rgb(255 255 255 / 5%) 100%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%), inset 0 0 0 1px rgb(255 255 255 / 14%), 0 30px 60px -20px rgb(0 8 30 / 60%);
+      clip-path: inset(0 0 100% 0 round 10px);
+    }
+    .is-card .fs-card { visibility: hidden; }
+    .fs-points { list-style: none; margin: 0; padding: 0; }
+    .fs-point {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      min-height: 76px;
+      padding: 10px 40px 10px 30px;
+    }
+    .fs-point.is-empty { display: none; }
+    .fs-point + .fs-point::before {        /* hairline between rows */
+      content: "";
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgb(255 255 255 / 20%) 12%, rgb(255 255 255 / 20%) 88%, transparent);
+    }
+    .fs-hi {                                  /* current row: sapphire glass + glint */
+      position: absolute;
+      inset: 6px 12px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity var(--t-morph) var(--ease-out);
+    }
+    .fs-point.is-current .fs-hi { opacity: 1; }
+    .fs-medal {
+      position: relative;
+      z-index: 1;
+      flex: none;
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--cr-blue-deep);
+      font-family: "NL Latin";
+      font-size: 22px;
+      font-weight: 700;
+      background: radial-gradient(circle at 35% 30%, var(--cr-gold-hi) 0%, var(--cr-gold) 55%, #9a7630 100%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 80%), 0 0 14px rgb(255 214 140 / 45%);
+    }
+    .fs-ptext {
+      position: relative;
+      z-index: 1;
+      color: #fff;
+      font-size: 36px;
+      font-weight: 500;
+      line-height: 52px;
+      letter-spacing: .02em;
+      text-shadow: var(--cr-text-shadow);
+      transition: color var(--t-morph) var(--ease-out);
+    }
+    .fs-ptext .nl-swap__item { -webkit-line-clamp: 2; overflow: hidden; }
+    .fs-point .fs-rise { transform: translate3d(-24px, 0, 0); }
+    .fs-point.is-past .fs-ptext { color: rgb(255 255 255 / 55%); }
+    .fs-point.is-past .fs-medal { filter: saturate(.4) brightness(.8); transition: filter var(--t-morph); }
+
+    .fs-footer {
+      position: absolute;
+      left: 144px;
+      right: 144px;
+      bottom: 60px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      color: #b9c9e6;
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: .06em;
+      opacity: 0;
+      transform: translate3d(0, calc(var(--lift, 0px) * -1), 0);
+      transition: transform var(--t-layout) var(--ease-move);
+    }
+    .fs-brand { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 24px; font-weight: 700; letter-spacing: .14em; text-shadow: var(--cr-text-shadow); }
+    .fs-brand .cr-star { width: 26px; height: 26px; }
+
+    /* ==== shown ==== */
+    .nl-root[data-show="1"] .fs-canvas { opacity: 1; transform: scale(1); }
+    .nl-root[data-show="1"] .fs-cap { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .fs-kline { transform: scaleX(1); }
+    .nl-root[data-show="1"] .fs-head .fs-rise { opacity: 1; transform: translate3d(0, 0, 0); }
+    .nl-root[data-show="1"] .fs-card { clip-path: inset(0 0 0 0 round 10px); }
+    .nl-root[data-show="1"] .fs-point.is-on .fs-rise { opacity: 1; transform: translate3d(0, 0, 0); }
+    .nl-root[data-show="1"] .fs-footer { opacity: 1; }
+
+    .fs-point .fs-rise { transition: opacity 360ms linear, transform 620ms var(--ease-out); }
+    .fs-point .fs-medal.fs-rise { transition-delay: 0ms; }
+    .fs-point .fs-ptext-wrap.fs-rise { transition-delay: 80ms; }
+
+    /* enter: dissolve in with a burst → kicker + flare → title → card → first point */
+    .nl-root[data-show="1"][data-motion="enter"] .fs-canvas { transition: opacity 520ms linear, transform 1100ms var(--ease-out); }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-burst { animation: fs-burst 1100ms var(--ease-out) 120ms 1 both; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-cap { transition: clip-path 520ms var(--ease-out) 300ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-kline { transition: transform 760ms var(--ease-out) 360ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-kline-wrap .cr-flare { animation: cr-flare 760ms var(--ease-out) 360ms 1 both; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-kicker .fs-rise { transition: opacity 320ms linear 420ms, transform 560ms var(--ease-out) 420ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-titlebox .fs-rise { transition: opacity 460ms linear 480ms, transform 820ms var(--ease-out) 480ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-card { transition: clip-path 700ms var(--ease-out) 700ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-point.is-on .fs-rise { transition-delay: 980ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-point.is-on .fs-ptext-wrap.fs-rise { transition-delay: 1060ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-footer { transition: opacity 600ms var(--ease-out) 1100ms, transform var(--t-layout) var(--ease-move); }
+
+    /* exit: content lifts off, the canvas dissolves */
+    .nl-root[data-show="0"] .fs-rise,
+    .nl-root[data-show="0"] .fs-footer { transition: opacity 200ms linear, transform 0s linear 800ms; }
+    .nl-root[data-show="0"] .fs-cap,
+    .nl-root[data-show="0"] .fs-card { transition: clip-path 0s linear 800ms; }
+    .nl-root[data-show="0"] .fs-kline { transition: transform 0s linear 800ms; }
+    .nl-root[data-show="0"][data-motion="exit"] .fs-canvas { transform: scale(1.02); transition: opacity 520ms linear 140ms, transform 700ms var(--ease-in); }
+    .nl-root[data-show="0"][data-motion="idle"] .fs-canvas { transition: none; }
+  </style>
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "晶华 CRYSTAL 全屏图文 FULLSCREEN",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "11",
+      webplayout: "1",
+      steps: "5",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "6",
+      DataFields: [
+        { field: "f1", ftype: "textarea", title: "标题（最多两行）", value: "前三季度经济运行总体平稳\n主要指标稳中向好" },
+        { field: "f0", ftype: "textfield", title: "栏目", value: "数据" },
+        { field: "f2", ftype: "textfield", title: "要点 1", value: "国内生产总值同比增长 5.1%，增速保持在合理区间" },
+        { field: "f3", ftype: "textfield", title: "要点 2", value: "规模以上工业增加值增长 5.8%，高技术制造业引领" },
+        { field: "f4", ftype: "textfield", title: "要点 3", value: "社会消费品零售总额增长 4.6%，服务消费较快恢复" },
+        { field: "f5", ftype: "textfield", title: "要点 4", value: "" },
+        { field: "f6", ftype: "textfield", title: "要点 5", value: "" },
+        { field: "f7", ftype: "textfield", title: "来源（可留空）", value: "来源：国家统计局" },
+        { ftype: "instruction", value: "Play 显示标题和第 1 条要点，Continue 逐条揭示。要点全部留空即为标题卡。上屏期间标题条 / 人名条自动让开。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root fs" id="root">
+      <div class="fs-canvas">
+        <div class="fs-rays"></div>
+        <div class="fs-streak"></div>
+        <div class="fs-bokeh" id="bokeh"></div>
+        <i class="fs-burst"></i>
+
+        <div class="fs-content">
+          <div class="fs-head">
+            <div class="fs-kicker">
+              <div class="fs-cap cr-glass cr-glass--red"><span class="fs-rise"><span class="nl-swap" id="section"></span></span></div>
+              <div class="fs-kline-wrap"><i class="fs-kline cr-gold"></i><i class="cr-flare"></i></div>
+            </div>
+            <div class="fs-titlebox"><span class="fs-rise"><span class="nl-swap fs-title" id="title"></span></span></div>
+          </div>
+          <div class="fs-card"><ol class="fs-points" id="points"></ol></div>
+        </div>
+
+        <div class="fs-footer">
+          <span class="nl-swap" id="source"></span>
+          <span class="fs-brand"><i class="cr-star"></i>晶华新闻</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const C = window.Crystal;
+      if (!C) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      C.stage($("stage"));
+
+      // drifting bokeh: fixed layout so every playout looks the same
+      [
+        [180, 760, 220, "rgb(255 226 170 / 22%)", "21s", "80px", "-50px"],
+        [420, 250, 120, "rgb(160 205 255 / 26%)", "17s", "-60px", "40px"],
+        [1500, 180, 260, "rgb(160 205 255 / 18%)", "24s", "-90px", "60px"],
+        [1720, 640, 160, "rgb(255 226 170 / 20%)", "19s", "50px", "-70px"],
+        [1180, 860, 300, "rgb(120 170 255 / 14%)", "26s", "-70px", "-40px"],
+        [860, 120, 90, "rgb(255 245 220 / 30%)", "15s", "40px", "30px"],
+        [60, 330, 140, "rgb(160 205 255 / 16%)", "22s", "70px", "50px"],
+        [1340, 420, 70, "rgb(255 235 190 / 34%)", "14s", "-40px", "-30px"]
+      ].forEach(([x, y, s, c, d, dx, dy]) => {
+        const b = document.createElement("i");
+        Object.assign(b.style, { left: `${x}px`, top: `${y}px`, width: `${s}px`, height: `${s}px` });
+        b.style.setProperty("--c", c); b.style.setProperty("--d", d);
+        b.style.setProperty("--x", dx); b.style.setProperty("--y", dy);
+        $("bokeh").appendChild(b);
+      });
+
+      const FIELDS = ["f2", "f3", "f4", "f5", "f6"];
+      const rows = FIELDS.map((f, i) => {
+        const li = document.createElement("li");
+        li.className = "fs-point is-empty";
+        li.innerHTML =
+          '<i class="fs-hi cr-glass"><i class="cr-glint"></i></i>' +
+          `<span class="fs-medal fs-rise">${i + 1}</span>` +
+          '<span class="fs-ptext-wrap fs-rise"><span class="nl-swap fs-ptext"></span></span>';
+        $("points").appendChild(li);
+        return { li, text: li.querySelector(".fs-ptext"), glint: li.querySelector(".cr-glint") };
+      });
+
+      let points = [];
+      function reveal(step, flourish) {
+        const count = Math.min(step + 1, points.length);
+        rows.forEach((r, i) => {
+          r.li.classList.toggle("is-on", i < count);
+          r.li.classList.toggle("is-past", i < count - 1);
+          r.li.classList.toggle("is-current", i === count - 1);
+        });
+        if (flourish && count) setTimeout(() => C.retrigger(rows[count - 1].glint, "is-run"), 260);
+      }
+
+      C.define({
+        kind: "fullscreen",
+        root,
+        enterMs: 1900,
+        exitMs: 900,
+        enterDelay: C.T.frame * 2,
+        releaseDelay: 380,
+        defaults: {
+          f0: "数据",
+          f1: "前三季度经济运行总体平稳\n主要指标稳中向好",
+          f2: "国内生产总值同比增长 5.1%，增速保持在合理区间",
+          f3: "规模以上工业增加值增长 5.8%，高技术制造业引领",
+          f4: "社会消费品零售总额增长 4.6%，服务消费较快恢复",
+          f5: "", f6: "",
+          f7: "来源：国家统计局"
+        },
+        lift: (env) => (env.reserveBottom ? Math.max(0, env.reserveBottom + 26 - 60) : 0),
+        render(d, ctx) {
+          const animate = ctx.animate;
+          C.swap($("section"), C.clean(d.f0), { animate });
+          C.swap($("title"), C.clean(d.f1), { animate, wrap: true });
+          C.swap($("source"), C.clean(d.f7), { animate });
+          points = FIELDS.map((f) => C.clean(d[f])).filter(Boolean);
+          rows.forEach((r, i) => {
+            const text = points[i] || "";
+            if (text) C.swap(r.text, text, { animate: animate && r.li.classList.contains("is-on"), wrap: true });
+            r.li.classList.toggle("is-empty", !text);
+          });
+          root.classList.toggle("is-card", points.length === 0);
+          reveal(this.step, false);
+        },
+        onShow(shown, motion) {
+          if (shown && motion === "enter" && points.length) setTimeout(() => { if (this.shown) C.retrigger(rows[0].glint, "is-run"); }, 1300);
+        },
+        onNext(step) {
+          if (step >= points.length) { this.step = Math.max(0, points.length - 1); return; }
+          reveal(step, true);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

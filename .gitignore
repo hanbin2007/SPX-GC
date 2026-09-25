@@ -82,6 +82,8 @@ ASSETS/**
 !ASSETS/templates/custom/
 !ASSETS/templates/custom/newsline/
 !ASSETS/templates/custom/newsline/**
+!ASSETS/templates/custom/crystal/
+!ASSETS/templates/custom/crystal/**
 !ASSETS/csv/csv-folder.md
 !ASSETS/excel/ticker-demo/basic-news-ticker.xlsx
 # Add templates with:

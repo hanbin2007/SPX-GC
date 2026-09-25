@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  CRYSTAL 晶华新闻 · HEADLINE 标题条                 SPX web layer 3
+  Scene slot "lower" (exclusive with NAME). Lifts above TICKER, steps aside
+  for FULLSCREEN. Same fields as Newsline HEADLINE. See README.md.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>晶华新闻 · 标题条</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <link rel="stylesheet" href="./_scene/lower.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "晶华 CRYSTAL 标题条 HEADLINE",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "13",
+      webplayout: "3",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "3",
+      DataFields: [
+        { field: "f1", ftype: "textfield", title: "标题", value: "城市更新计划发布，公共空间焕发新活力" },
+        { field: "f2", ftype: "textfield", title: "补充信息（可留空）", value: "聚焦民生与城市发展" },
+        { field: "f0", ftype: "textfield", title: "栏目", value: "要闻" },
+        { field: "f3", ftype: "textfield", title: "地点（可留空）", value: "北京" },
+        {
+          field: "f4", ftype: "dropdown", title: "播出状态", value: "直播",
+          items: [
+            { text: "直播", value: "直播" },
+            { text: "报道", value: "报道" },
+            { text: "特别报道", value: "特别报道" },
+            { text: "突发", value: "突发" }
+          ]
+        },
+        { ftype: "instruction", value: "播出中修改后按 Update 原地切换。与人名条同属下三分之一，互相接替。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root lower lower--headline" id="root">
+      <div class="nl-lift">
+        <div class="lower-block">
+          <div class="cr-row">
+            <div class="cr-shadow"></div>
+            <div class="cr-cap cr-glass cr-glass--red" id="cap">
+              <i class="cr-alt cr-glass cr-glass--deep"></i>
+              <span class="cr-t"><span class="nl-swap" id="section"></span></span>
+            </div>
+            <div class="cr-bar cr-glass">
+              <i class="cr-alert cr-glass cr-glass--red"></i>
+              <span class="cr-t"><span class="nl-swap cr-title" id="headline"></span></span>
+              <div class="cr-badge cr-t" id="badge">
+                <i class="cr-dot"></i>
+                <span class="nl-swap" id="status"></span>
+                <i class="cr-pip" id="pip"></i>
+                <span class="nl-swap cr-loc" id="location"></span>
+              </div>
+              <i class="cr-glint" id="glint"></i>
+            </div>
+            <i class="cr-rule cr-gold"></i>
+            <i class="cr-flare" id="flare"></i>
+          </div>
+          <div class="cr-subrow" id="subrow">
+            <div class="cr-sub cr-glass cr-glass--white">
+              <span class="cr-t"><span class="nl-swap cr-subtext" id="subline"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const C = window.Crystal;
+      if (!C) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      C.stage($("stage"));
+      $("flare").style.setProperty("--run", "1728px");
+
+      const ROW = 1728;
+      const px = (el) => parseFloat(el.style.width) || 0;
+      let lastTitle = null;
+      let glintTimer = 0;
+
+      C.define({
+        kind: "headline",
+        slot: "lower",
+        suspendOn: ["fullscreen"],
+        root,
+        enterMs: 2000,
+        exitMs: 620,
+        defaults: { f0: "要闻", f1: "城市更新计划发布，公共空间焕发新活力", f2: "聚焦民生与城市发展", f3: "北京", f4: "直播" },
+        lift: (env) => Math.max(0, env.reserveBottom + 22 - 70),
+        render(d, ctx) {
+          const animate = ctx.animate;
+          const status = C.clean(d.f4) || "报道";
+          const location = C.clean(d.f3);
+          const subline = C.clean(d.f2);
+          root.classList.toggle("is-live", status === "直播" || status === "突发");
+          root.classList.toggle("is-breaking", status === "突发");
+
+          C.swap($("section"), C.clean(d.f0), { animate });
+          C.swap($("status"), status, { animate });
+          C.swap($("location"), location, { animate });
+          $("pip").classList.toggle("is-empty", !location);
+
+          // room left for the title once cap and badge have their new widths
+          const capW = px($("section"));
+          const badgeW = px($("status")) + px($("location")) + (root.classList.contains("is-live") ? 24 : 0) + (location ? 28 : 0) + 56;
+          const max = ROW - capW - badgeW - 72;
+          C.swap($("headline"), d.f1, { animate, fit: { max, size: 50, min: 36 } });
+
+          C.swap($("subline"), subline, { animate, fit: { max: ROW - capW - 64, size: 28, min: 22 } });
+          $("subrow").classList.toggle("is-empty", !subline);
+          root.style.setProperty("--cap-w", `${capW}px`);
+
+          const title = C.clean(d.f1);
+          if (animate && (title !== lastTitle || ctx.fromCarry)) C.retrigger($("glint"), "is-run");
+          lastTitle = title;
+        },
+        onShow(shown) {
+          clearInterval(glintTimer);
+          // a glint crosses the glass every 9 s while on air
+          if (shown) glintTimer = setInterval(() => C.retrigger($("glint"), "is-run"), 9000);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
