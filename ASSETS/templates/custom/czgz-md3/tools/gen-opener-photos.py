@@ -2,7 +2,7 @@
 
   python3 tools/gen-opener-photos.py <campus-a> <campus-b>
 
-Each campus photo becomes a navy-to-soft-teal monochrome WebP whose white
+Each campus photo becomes a dark navy monochrome WebP whose white
 sky (every near-white area connected to the top or right edge) is cut out,
 so the image can sit on any navy background. Also writes img/burst.webp,
 the soft light rays behind the emblem. Needs Pillow and NumPy.
@@ -13,8 +13,9 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 IMG = os.path.join(HERE, "..", "img")
-DARK = np.array([16, 44, 86], np.float32)      # navy shadows
-LIGHT = np.array([200, 241, 242], np.float32)  # soft-teal highlights
+DARK = np.array([4, 12, 30], np.float32)       # near-black navy shadows
+LIGHT = np.array([60, 94, 142], np.float32)    # dim blue highlights
+RAYS = np.array([200, 241, 242], np.uint8)     # soft teal light rays
 
 
 def smoothstep(e0, e1, x):
@@ -53,7 +54,7 @@ def burst(size=1100):
     ray = np.clip(1 - np.abs(ang - 1.25) / 1.6, 0, 1)          # a soft 2.5 deg ray every 10 deg
     fade = (1 - smoothstep(0.18, 0.95, r)) * smoothstep(0.05, 0.2, r)
     rgba = np.zeros((size, size, 4), np.uint8)
-    rgba[..., :3] = LIGHT.astype(np.uint8)
+    rgba[..., :3] = RAYS
     rgba[..., 3] = (ray * fade * 0.16 * 255).astype(np.uint8)
     Image.fromarray(rgba, "RGBA").save(os.path.join(IMG, "burst.webp"), "WEBP", quality=80, method=6)
 

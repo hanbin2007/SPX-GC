@@ -1,26 +1,33 @@
-/* Opening title sequence, about 20 s. Nothing on screen is ever at rest:
-   every element runs either a scripted move or an idle loop.
-   0.0  M3 shape morph burst over the monochrome campus photo
-   1.0  campus opens through a rotating cookie iris with a soft-teal rim, at
-        sunset: buildings rise, pagoda stacks up, trees pop and sway, flags
-        wave, clouds drift, windows light up left to right as night falls
-   3.6  time-lapse: two full days and nights while the odometer rolls 1907
-        to this year, settling on night with "建校 N 年"
-   9.7  match-cut: the crescent waxes full, the camera warps into the moon
-        and the moon flies to the centre to become the emblem's disc
-   11.8 shockwave, decoration flies in; emblem builds: ring draws, colour
-        fields trace then fill, ring letters pop in order, seal, sheen;
-        orbit ring draws around it
-   14.1 lockup: the mark slides left, two bands sweep across and retract to
-        reveal the calligraphy name, English name, wavy rule, title (letter
-        by letter), subtitle and anniversary chip
-   18.4 layered reveal: the mark flies at the camera while a cookie hole with
-        teal and soft-teal rims opens onto the programme (or hold, still
-        alive) */
+/* Opening title sequence, about 28 s in nine scenes. Nothing on screen is
+   ever at rest: every element runs either a scripted move or an idle loop.
+   Every scene change is a large, continuous transition.
+
+   S1  0.0  M3 shape morph burst over the dark campus photo
+       -> rotating cookie iris with a soft-teal rim
+   S2  1.3  "SINCE 1907": four wheels spin and stop one by one on 1907,
+            calligraphy name and English name under it
+       -> the camera flies through the "0": the scene zooms past while a
+          cookie hole with teal and soft-teal rims opens onto the campus
+   S3  4.3  campus at sunset: buildings rise, pagoda stacks up, trees pop
+            and sway, flags wave, night falls, windows light up
+       -> tile wave: a grid of M3 shapes sweeps diagonally across
+   S4  7.8  day/night time-lapse, two full days while the odometer rolls
+            1907 to this year ("建校 N 年")
+       -> doors with rounded edges close and open again
+   S5 11.5  pagoda close-up: lamps light tier by tier, the spire flashes
+       -> curtain: capsules drop through the frame
+   S6 14.8  name-stone close-up: the calligraphy is carved, English caption
+       -> crane up to the moon, it waxes full; the camera warps into it and
+          the moon flies to the centre to become the emblem's disc
+   S7 20.4  shockwave, decoration flies in, the emblem builds
+       -> the mark slides left, two capsule bands sweep and retract
+   S8 22.7  lockup: calligraphy name, English name, wavy rule, title letter
+            by letter, subtitle, anniversary chip
+   S9 26.6  layered reveal onto the programme (or hold, still alive) */
 (function () {
   "use strict";
 
-  const { to, set, pulse, swap, snap, shape, shapePx, M, bus } = window.CZ;
+  const { to, set, pulse, swap, snap, shape, shapePx, shapePoints, M, bus } = window.CZ;
   const $ = (id) => document.getElementById(id);
   const SVGNS = "http://www.w3.org/2000/svg";
 
@@ -28,7 +35,6 @@
     op: $("op"),
     rimSoft: $("rimSoft"),
     rimTeal: $("rimTeal"),
-    bg: $("bg"),
     photo: $("photo"),
     motes: $("motes"),
     seed: $("seed"),
@@ -39,10 +45,27 @@
     campus: $("campus"),
     cam: $("cam"),
     stoneWord: $("stoneWord"),
+    carve: $("carve"),
+    caption: $("caption"),
     year: $("year"),
     yearLabel: $("yearLabel"),
     yearDigits: $("yearDigits"),
     yearRange: $("yearRange"),
+    s2: $("s2"),
+    s2rimSoft: $("s2rimSoft"),
+    s2rimTeal: $("s2rimTeal"),
+    s2in: $("s2in"),
+    s2motes: $("s2motes"),
+    s2ring: $("s2ring"),
+    s2deco: [...document.querySelectorAll(".op-s2__deco > i")],
+    s2label: $("s2label"),
+    s2digits: $("s2digits"),
+    s2word: $("s2word"),
+    s2en: $("s2en"),
+    tiles: $("tiles"),
+    doorL: $("doorL"),
+    doorR: $("doorR"),
+    curtain: $("curtain"),
     warp: $("warp"),
     moonDisc: $("moonDisc"),
     deco: [...document.querySelectorAll(".op-deco > i")],
@@ -77,7 +100,8 @@
     flags: q(".flag"),
     trees: q(".tree"),
     stone: q(".stone, .pond"),
-    wins: q(".win")
+    wins: q(".win"),
+    glint: scene.querySelector(".glint")
   };
   const SKY = {
     day: scene.querySelector(".sky-day"),
@@ -92,6 +116,8 @@
   };
   // Lit window colours: mostly teal-soft, some warm.
   const LIT = S.wins.map((w, i) => ((i * 7) % 10 < 3 ? "#ffe3a3" : "#c8f1f2"));
+  // Pagoda lamps, bottom tier first (the generator draws them bottom up).
+  const PAGODA = S.tiers.map((t) => [...t.querySelectorAll(".win")]).filter((w) => w.length);
 
   const E = window.CZ_EMBLEM;
   const svg = document.createElementNS(SVGNS, "svg");
@@ -139,13 +165,16 @@
     el.wave.setAttribute("d", `M${pts.join(" L")}`);
   })();
 
-  // Motes: small M3 shapes rising through the background, always moving.
-  (function () {
-    let seed = 20260901;
+  // Dashed cookie ring behind the "1907" digits.
+  el.s2ring.setAttribute("d", `M${shapePoints("cookie12").map(([x, y]) => `${(x * 400).toFixed(1)} ${(y * 400).toFixed(1)}`).join(" L")}Z`);
+
+  // Motes: small M3 shapes rising through a background, always moving.
+  function makeMotes(container, count, seed0) {
+    let seed = seed0;
     const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
     const kinds = ["circle", "spark4", "clover4", "cookie12", "sunny8", "circle"];
     const colors = ["#c8f1f2", "#30b8bd", "#ffffff", "#57cfd3"];
-    for (let i = 0; i < 26; i += 1) {
+    for (let i = 0; i < count; i += 1) {
       const m = document.createElement("i");
       const size = 8 + rnd() * 20;
       m.style.left = `${(rnd() * 1920).toFixed(0)}px`;
@@ -156,9 +185,11 @@
       m.style.setProperty("--o", (0.18 + rnd() * 0.42).toFixed(2));
       m.style.animationDuration = `${(9 + rnd() * 10).toFixed(1)}s`;
       m.style.animationDelay = `${(-rnd() * 19).toFixed(1)}s`;
-      el.motes.appendChild(m);
+      container.appendChild(m);
     }
-  })();
+  }
+  makeMotes(el.motes, 26, 20260901);
+  makeMotes(el.s2motes, 14, 19070101);
 
   // Decoration enters from outside, flying in towards its place.
   const DECO_FROM = el.deco.map((n) => {
@@ -172,6 +203,33 @@
     const s = document.createElement("i");
     el.warp.appendChild(s);
     return { el: s, angle: i * 12 + ((i * 53) % 9) };
+  });
+
+  // Tile wave: 8 x 5 cells, each covered by a 380 px M3 shape (big enough
+  // that neighbours overlap even at the shapes' narrowest).
+  const TILE_SHAPES = ["cookie12", "cookie9", "sunny8", "circle"];
+  const TILE_COLORS = ["#30b8bd", "#244a82", "#c8f1f2"];
+  const TILES = [];
+  for (let r = 0; r < 5; r += 1) {
+    for (let c = 0; c < 8; c += 1) {
+      const t = document.createElement("i");
+      t.style.left = `${120 + 240 * c - 190}px`;
+      t.style.top = `${108 + 216 * r - 190}px`;
+      t.style.background = TILE_COLORS[(c + r) % 3];
+      t.style.clipPath = shape(TILE_SHAPES[(c * 3 + r) % 4]);
+      el.tiles.appendChild(t);
+      TILES.push({ el: t, d: c + (4 - r) });     // bottom-left first
+    }
+  }
+
+  // Curtain: seven capsules, 280 px apart, 340 px wide.
+  const PILL_COLORS = ["#30b8bd", "#244a82", "#c8f1f2", "#1a3e71"];
+  const PILLS = Array.from({ length: 7 }, (_, i) => {
+    const p = document.createElement("i");
+    p.style.left = `${i * 280 - 30}px`;
+    p.style.background = PILL_COLORS[i % PILL_COLORS.length];
+    el.curtain.appendChild(p);
+    return p;
   });
 
   /* ---------------- Timeline helpers ---------------- */
@@ -197,22 +255,100 @@
   }
 
   const lin = (duration) => ({ duration, easing: "linear" });
-  // Which layers are on screen: intro, open (iris), campus, warp, mark.
-  const act = (name) => { el.op.dataset.act = name; };
   const HIDDEN = "polygon(0 0, 0 0, 0 0)";
+  const clamp01 = (x) => Math.min(1, Math.max(0, x));
+  const smooth = (a, b, x) => { const u = clamp01((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+  // Which layers are on screen: s1, s2, s23, campus, warp, mark.
+  const act = (name) => { el.op.dataset.act = name; };
 
-  /* ---------------- Campus clock ---------------- */
+  // Position of an element's centre in stage pixels.
+  function centreOf(n) {
+    const box = el.op.getBoundingClientRect();
+    const k = box.width / 1920 || 1;
+    const b = n.getBoundingClientRect();
+    return { x: (b.left + b.width / 2 - box.left) / k, y: (b.top + b.height / 2 - box.top) / k, r: b.width / 2 / k };
+  }
 
-  // Campus cues (ms from play). The orbit drifts through sunset, speeds up
-  // into a time-lapse of two full days, then brakes onto night.
+  // Attribute tween on its own frame loop (for SVG attributes).
+  function tweenAttr(n, attr, from, toValue, duration) {
+    const tk = token;
+    const ease = M.inout().fn;
+    const t0 = performance.now();
+    (function frame(now) {
+      if (tk !== token) return;
+      const p = clamp01((now - t0) / duration);
+      n.setAttribute(attr, (from + (toValue - from) * ease(p)).toFixed(2));
+      if (p < 1) requestAnimationFrame(frame);
+    })(t0);
+  }
+
+  // Layered cookie iris: layers[0] opens a hole; the layers under it (the
+  // rims) fill the hole with colour until their own, later holes open.
+  function layeredIris(layers, cx, cy, opts = {}) {
+    const dur = opts.dur || 1050;
+    const lags = opts.lags || [0, 0.07, 0.13];
+    const last = lags[lags.length - 1];
+    const far = Math.max(...[[0, 0], [1920, 0], [0, 1080], [1920, 1080]].map(([x, y]) => Math.hypot(x - cx, y - cy)));
+    const rMax = far / 0.9 + 40;
+    const ease = M.inout().fn;
+    const tk = token;
+    return new Promise((resolve) => {
+      const t0 = performance.now();
+      function frame(now) {
+        if (tk !== token) return resolve();
+        const p = (now - t0 - (opts.delay || 0)) / dur;
+        layers.forEach((layer, i) => {
+          if (i > 0 && p > 0 && p <= lags[i]) {
+            layer.style.clipPath = "none";
+            return;
+          }
+          const u = clamp01((p - lags[i]) / (1 - last));
+          if (u > 0) layer.style.clipPath = shapePx("cookie12", cx, cy, rMax * ease(u), { rot: 50 * u, hole: true });
+        });
+        if (p < 1) requestAnimationFrame(frame);
+        else {
+          layers.forEach((layer) => { layer.style.clipPath = HIDDEN; });
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  /* ---------------- Cues ---------------- */
+
+  // All times in ms from play.
   const T = {
-    open: 1100, firstLight: 2500, yearIn: 3300,
-    lapse: 3600, cruise: 4600, brake: 8400, stop: 9600,
-    roll0: 3800, roll1: 9400, label: 9550, wax: 9700, yearOut: 10150,
-    warp: 10400, arrive: 11750, lockup: 14100, sweep: 14250,
-    hold: 18000, end: 18400
+    s2: 1300, s2Label: 1650, s2Stops: [2000, 2250, 2500, 2750], s2Word: 2800, s2En: 3050,
+    s3: 4300, firstLight: 5700,
+    s4: 6900, s4Cover: 7830, yearIn: 8250, roll0: 8350, roll1: 10350, label: 10500, yearOut: 10800,
+    lapse: 7850, cruise: 8450, brake: 9900, stop: 10700,
+    s5: 10900, s5Cover: 11480, lamps: 11950, glint: 13500,
+    s6: 14000, s6Cover: 14830, carve: 15250, captionIn: 15500,
+    crane: 17600, wax: 18050, warp: 19000, arrive: 20350,
+    lockup: 22700, sweep: 22850,
+    hold: 26200, end: 26600
   };
-  const ORBIT = { a0: 70, a1: 150, a2: 900 };   // sun angle from the zenith, clockwise
+  T.open = T.s3;
+
+  // Camera framings of the campus drawing (the camera scales about 960, 540).
+  const CAM = {
+    s3From: "translate(40px, 0px) scale(1.04)",
+    s3To: "translate(-70px, 0px) scale(1.1)",
+    s4From: "translate(80px, 60px) scale(1.12)",
+    s4To: "translate(-80px, 60px) scale(1.12)",
+    pagodaFrom: "translate(-836px, 133px) scale(1.9)",    // centred on (1400, 470)
+    pagodaTo: "translate(-880px, 140px) scale(2)",
+    stoneFrom: "translate(-12px, -739px) scale(2.4)",      // centred on (965, 848)
+    stoneTo: "translate(-12px, -770px) scale(2.5)",
+    moon: "translate(-232px, 203px) scale(1.45)"          // centred on (1120, 400)
+  };
+
+  /* ---------------- Sky clock ---------------- */
+
+  // The orbit drifts through sunset in S3, speeds up into a time-lapse of
+  // two full days in S4, then brakes onto night.
+  const ORBIT = { a0: 62, a1: 110, a2: 900 };   // sun angle from the zenith, clockwise
   const V0 = (ORBIT.a1 - ORBIT.a0) / (T.lapse - T.open);
   const UP = T.cruise - T.lapse;
   const DOWN = T.stop - T.brake;
@@ -236,19 +372,16 @@
     return ORBIT.a2;
   }
 
-  const clamp01 = (x) => Math.min(1, Math.max(0, x));
-  const smooth = (a, b, x) => { const u = clamp01((x - a) / (b - a)); return u * u * (3 - 2 * u); };
-
   // Each window switches on once it is dark enough; its threshold grows
   // left to right, so lights come on left to right at dusk and go off
   // right to left at dawn. The first night also waits for the buildings.
   const WIN = S.wins.map((w, i) => {
     const x = (parseFloat(w.getAttribute("x")) || 0) / 1920;
     const jitter = ((i * 37) % 100) / 100;
-    return { th: 0.3 + 0.45 * x + 0.15 * jitter, gate: T.firstLight + x * 1100 + jitter * 250, lit: false };
+    return { th: 0.3 + 0.45 * x + 0.15 * jitter, gate: T.firstLight + x * 900 + jitter * 250, lit: false };
   });
 
-  function applySky(angle, t, wax = 0) {
+  function applySky(angle, t) {
     const r = (angle * Math.PI) / 180;
     const c = Math.cos(r);
     const s = Math.sin(r);
@@ -259,8 +392,6 @@
     SKY.stars.setAttribute("opacity", smooth(0.4, 1, night).toFixed(3));
     SKY.wash.setAttribute("opacity", (0.6 * day).toFixed(3));
     SKY.clouds.setAttribute("opacity", (0.16 + 0.5 * day).toFixed(3));
-    // Before the match-cut the crescent waxes into a full moon.
-    SKY.moonCut.setAttribute("cx", (34 + 190 * wax).toFixed(1));
     // Elliptical orbit, centred right of the middle to keep clear of the year.
     SKY.sunPos.setAttribute("transform", `translate(${(1120 + 820 * s).toFixed(1)} ${(1000 - 680 * c).toFixed(1)})`);
     SKY.moonPos.setAttribute("transform", `translate(${(1120 - 820 * s).toFixed(1)} ${(1000 + 680 * c).toFixed(1)})`);
@@ -272,61 +403,70 @@
     });
   }
 
-  /* ---------------- Year odometer ---------------- */
+  /* ---------------- Odometers ---------------- */
 
-  const CELL = 176;
-  const odo = [];            // strips, thousands first
   // Vertical-only blur per wheel, scaled by how fast it spins.
   const blurSvg = document.createElementNS(SVGNS, "svg");
   blurSvg.setAttribute("width", "0");
   blurSvg.setAttribute("height", "0");
   blurSvg.style.position = "absolute";
   document.body.appendChild(blurSvg);
-  el.yearDigits.textContent = "";
-  for (let k = 0; k < 4; k += 1) {
-    const col = document.createElement("span");
-    col.className = "op-odo";
-    const strip = document.createElement("span");
-    strip.innerHTML = "0123456789".split("").concat("0").map((d) => `<b>${d}</b>`).join("");
-    col.appendChild(strip);
-    el.yearDigits.appendChild(col);
-    const filter = node("filter", { id: `opOdoBlur${k}`, x: "-5%", y: "-5%", width: "110%", height: "110%" }, blurSvg);
-    const blur = node("feGaussianBlur", { stdDeviation: "0 0" }, filter);
-    odo.push({ strip, blur, id: filter.id, pos: 0, blurred: false });
-  }
 
-  // Mechanical odometer: the units wheel turns continuously, every other
-  // wheel only moves while all the wheels below it roll over from 9 to 0.
-  function setYearValue(v, dt) {
+  // Four wheels, each a 0-9-0 strip rolling upward.
+  function makeOdometer(container, cell, prefix) {
+    container.textContent = "";
+    const wheels = [];
     for (let k = 0; k < 4; k += 1) {
-      const unit = Math.pow(10, k);
-      const below = v % unit;
-      const carry = k === 0 ? v % 10 - Math.floor(v % 10) : clamp01(below - (unit - 1));
-      const pos = (Math.floor(v / unit) % 10) + carry;
-      const wheel = odo[3 - k];
-      wheel.strip.style.transform = `translateY(${(-pos * CELL).toFixed(2)}px)`;
-      if (dt) {
-        let moved = pos - wheel.pos;
-        if (moved < -5) moved += 10;
-        const sd = Math.min(12, (Math.abs(moved) * CELL * 0.3 * 16.7) / dt);
-        if (sd > 0.4) {
-          wheel.blur.setAttribute("stdDeviation", `0 ${sd.toFixed(2)}`);
-          if (!wheel.blurred) wheel.strip.style.filter = `url(#${wheel.id})`;
-          wheel.blurred = true;
-        } else if (wheel.blurred) {
-          wheel.strip.style.filter = "";
-          wheel.blurred = false;
-        }
-      } else if (wheel.blurred) {
-        wheel.strip.style.filter = "";
-        wheel.blurred = false;
-      }
-      wheel.pos = pos;
+      const col = document.createElement("span");
+      col.className = "op-odo";
+      const strip = document.createElement("span");
+      strip.innerHTML = "0123456789".split("").concat("0").map((d) => `<b>${d}</b>`).join("");
+      col.appendChild(strip);
+      container.appendChild(col);
+      const filter = node("filter", { id: `${prefix}${k}`, x: "-5%", y: "-5%", width: "110%", height: "110%" }, blurSvg);
+      const blur = node("feGaussianBlur", { stdDeviation: "0 0" }, filter);
+      wheels.push({ col, strip, blur, id: filter.id, pos: 0, blurred: false });
     }
+    function place(w, pos, dt) {
+      const shown = ((pos % 10) + 10) % 10;
+      w.strip.style.transform = `translateY(${(-shown * cell).toFixed(2)}px)`;
+      let sd = 0;
+      if (dt) {
+        let moved = pos - w.pos;
+        if (moved < -5) moved += 10;
+        sd = Math.min(12, (Math.abs(moved) * cell * 0.3 * 16.7) / dt);
+      }
+      if (sd > 0.4) {
+        w.blur.setAttribute("stdDeviation", `0 ${sd.toFixed(2)}`);
+        if (!w.blurred) w.strip.style.filter = `url(#${w.id})`;
+        w.blurred = true;
+      } else if (w.blurred) {
+        w.strip.style.filter = "";
+        w.blurred = false;
+      }
+      w.pos = pos;
+    }
+    return {
+      wheels,
+      positions(list, dt) { list.forEach((p, i) => place(wheels[i], p, dt)); },
+      // Mechanical odometer: the units wheel turns continuously, every other
+      // wheel only moves while all the wheels below it roll over from 9 to 0.
+      value(v, dt) {
+        for (let k = 0; k < 4; k += 1) {
+          const unit = Math.pow(10, k);
+          const carry = k === 0 ? v % 10 - Math.floor(v % 10) : clamp01((v % unit) - (unit - 1));
+          place(wheels[3 - k], (Math.floor(v / unit) % 10) + carry, dt);
+        }
+      }
+    };
   }
+  const yearOdo = makeOdometer(el.yearDigits, 176, "opYearBlur");
+  const bigOdo = makeOdometer(el.s2digits, 300, "opBigBlur");
+  const BIG_TARGET = [1, 9, 0, 7];
+  const BIG_TURNS = [2, 3, 4, 5];
 
   // Trapezoid velocity (linear ramps), so the wheels speed up and brake.
-  function rollProgress(x, a = 0.15, b = 0.35) {
+  function rollProgress(x, a = 0.15, b = 0.4) {
     x = clamp01(x);
     const area = 1 - a / 2 - b / 2;
     if (x < a) return (x * x) / (2 * a) / area;
@@ -334,7 +474,15 @@
     return (area - ((1 - x) * (1 - x)) / (2 * b)) / area;
   }
 
-  // One frame clock for everything continuous in the campus part.
+  // Slot machine for S2: every wheel spins upward and eases onto its digit.
+  function bigWheels(t) {
+    return BIG_TARGET.map((d, i) => {
+      const p = clamp01((t - T.s2) / (T.s2Stops[i] - T.s2));
+      return d - 10 * BIG_TURNS[i] * Math.pow(1 - p, 3);
+    });
+  }
+
+  // One frame clock for everything continuous before the pagoda scene.
   function runClock(year) {
     const tk = token;
     const t0 = performance.now();
@@ -344,11 +492,40 @@
       const t = now - t0;
       const dt = Math.max(1, now - last);
       last = now;
-      applySky(orbitAngle(t), t, smooth(T.wax, T.wax + 650, t));
-      if (t >= T.roll0) setYearValue(1907 + (year - 1907) * rollProgress((t - T.roll0) / (T.roll1 - T.roll0)), dt);
-      if (t < T.warp + 200) requestAnimationFrame(frame);
+      if (t < T.s2Stops[3] + 120) bigOdo.positions(bigWheels(t), dt);
+      if (t >= T.open) applySky(orbitAngle(t), t);
+      if (t >= T.roll0) yearOdo.value(1907 + (year - 1907) * rollProgress((t - T.roll0) / (T.roll1 - T.roll0)), dt);
+      if (t < T.s5Cover) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
+  }
+
+  /* ---------------- Wipes ---------------- */
+
+  function tileWipe(onCovered) {
+    TILES.forEach((t) => {
+      at(t.d * 45, () => to(t.el, { transform: "scale(1) rotate(0deg)" }, { m: M.dec(420) }));
+      at(950 + t.d * 45, () => to(t.el, { transform: "scale(0) rotate(90deg)" }, { m: M.acc(380) }));
+    });
+    at(930, onCovered);
+  }
+
+  function doorWipe(onCovered) {
+    to(el.doorL, { transform: "translateX(0px)" }, { m: M.inout(560) });
+    to(el.doorR, { transform: "translateX(0px)" }, { m: M.inout(560) });
+    at(580, onCovered);
+    at(700, () => {
+      to(el.doorL, { transform: "translateX(-1060px)" }, { m: M.inout(640) });
+      to(el.doorR, { transform: "translateX(1060px)" }, { m: M.inout(640) });
+    });
+  }
+
+  function curtainWipe(onCovered) {
+    PILLS.forEach((p, i) => {
+      at(i * 55, () => to(p, { transform: "translateY(0px)" }, { m: M.dec(480) }));
+      at(860 + i * 55, () => to(p, { transform: "translateY(1900px)" }, { m: M.acc(460) }));
+    });
+    at(830, onCovered);
   }
 
   /* ---------------- Poses ---------------- */
@@ -368,20 +545,34 @@
     running = false;
     lockedUp = false;
     el.op.classList.remove("is-live");
-    act("intro");
+    act("s1");
     el.op.style.clipPath = HIDDEN;
-    el.rimSoft.style.clipPath = HIDDEN;
-    el.rimTeal.style.clipPath = HIDDEN;
+    [el.rimSoft, el.rimTeal, el.s2rimSoft, el.s2rimTeal].forEach((n) => { n.style.clipPath = HIDDEN; });
     set(el.photo, { opacity: "0" });
     set(el.motes, { opacity: "0" });
+    // S1
     set(el.seed, { transform: "scale(0) rotate(-90deg)", opacity: "1" });
     set(el.seedShape, { clipPath: shape("circle"), backgroundColor: "#30b8bd" });
     el.rays.forEach((r, i) => set(r, { transform: `rotate(${i * 45}deg) translateY(0px) scaleY(0.2)`, opacity: "0" }));
     el.ripples.forEach((r) => set(r, { transform: "scale(0.2)", opacity: "0" }));
+    el.iris.getAnimations().forEach((a) => a.cancel());
     set(el.iris, { clipPath: HIDDEN });
+    // S2
+    el.s2.getAnimations().forEach((a) => a.cancel());
+    set(el.s2, { clipPath: HIDDEN });
+    set(el.s2in, { transform: "scale(1)", opacity: "1" });
+    el.s2in.style.transformOrigin = "";
+    el.s2deco.forEach((n) => set(n, { transform: "scale(0) rotate(-120deg)" }));
+    set(el.s2label, { transform: "scale(0.4)", opacity: "0" });
+    set(el.s2digits, { transform: "translateY(60px)", opacity: "0" });
+    bigOdo.positions([0, 0, 0, 0]);
+    set(el.s2word, { clipPath: "inset(0% 100% 0% 0%)" });
+    set(el.s2en, { transform: "translateY(20px)", opacity: "0", letterSpacing: "0.34em" });
+    // Campus
+    el.campus.getAnimations().forEach((a) => a.cancel());
     set(el.campus, { clipPath: HIDDEN, transform: "translate(0px, 0px) scale(1)", opacity: "1" });
     el.campus.style.transformOrigin = "";
-    set(el.cam, { transform: "translateX(0px) scale(1)" });
+    set(el.cam, { transform: CAM.s3From });
     S.sun.forEach((n) => set(n, { transform: "scale(0.3) rotate(-45deg)", opacity: "0" }));
     S.far.forEach((n) => set(n, { transform: "translateY(240px)" }));
     S.tiers.forEach((n) => set(n, { transform: "translateY(40px) scale(0.4)", opacity: "0" }));
@@ -389,18 +580,29 @@
     S.flags.forEach((n) => set(n, { transform: "scaleY(0)" }));
     S.trees.forEach((n) => set(n, { transform: "scale(0)" }));
     S.stone.forEach((n) => set(n, { transform: "translateY(90px)", opacity: "0" }));
+    set(S.glint, { opacity: "0" });
     WIN.forEach((w) => { w.lit = false; });
     S.wins.forEach((n) => { n.style.fill = ""; });
     SKY.moonPos.setAttribute("opacity", "1");
-    applySky(ORBIT.a0, 0, 0);
+    SKY.moonCut.setAttribute("cx", "34");
+    applySky(ORBIT.a0, 0);
     set(el.stoneWord, { clipPath: "inset(0% 100% 0% 0%)" });
+    set(el.carve, { transform: "translateX(0px)", opacity: "0" });
+    set(el.caption, { transform: "translateY(24px)", opacity: "0", letterSpacing: "0.2em" });
     set(el.year, { transform: "translateY(30px)", opacity: "0" });
-    setYearValue(1907);
+    yearOdo.value(1907);
     snap(el.yearLabel, "SINCE");
     set(el.yearRange, { opacity: "0" });
+    // Wipes
+    TILES.forEach((t) => set(t.el, { transform: "scale(0) rotate(-90deg)" }));
+    set(el.doorL, { transform: "translateX(-1060px)" });
+    set(el.doorR, { transform: "translateX(1060px)" });
+    PILLS.forEach((p) => set(p, { transform: "translateY(-1900px)" }));
+    // Match-cut
     set(el.warp, { transform: "translate(0px, 0px)" });
     STREAKS.forEach((s) => set(s.el, { opacity: "0" }));
     set(el.moonDisc, { transform: "translate(0px, 0px) scale(1)", opacity: "0", backgroundColor: "#eef6ff" });
+    // Emblem and lockup
     el.deco.forEach((n, i) => set(n, { transform: DECO_FROM[i], opacity: "0" }));
     set(el.mark, { transform: "translate(0px, 0px) scale(1)", opacity: "0" });
     set(el.burst, { opacity: "0", transform: "scale(0.6)" });
@@ -426,11 +628,11 @@
     set(el.sweepSoft, { clipPath: SWEEP_IN });
   }
 
-  // Expanding cookie (optionally a hole) as keyframes; the lobes slide as it grows.
-  function cookieFrames(r0, r1, rot, opts = {}) {
+  // Expanding cookie as keyframes; the lobes slide as it grows.
+  function cookieFrames(r0, r1, rot) {
     return Array.from({ length: 9 }, (_, i) => {
       const p = i / 8;
-      return { clipPath: shapePx("cookie12", opts.cx || 960, opts.cy || 540, Math.max(0.5, r0 + (r1 - r0) * p), { rot: rot * p, hole: opts.hole }) };
+      return { clipPath: shapePx("cookie12", 960, 540, Math.max(0.5, r0 + (r1 - r0) * p), { rot: rot * p }) };
     });
   }
 
@@ -441,14 +643,15 @@
     running = true;
     el.op.classList.add("is-live");
     const year = new Date().getFullYear();
+    runClock(year);
 
-    // 0.0 - cover grows over the monochrome campus photo; the seed morphs
+    /* S1 - cover grows over the dark campus photo; the seed morphs */
     const cover = el.op.animate([
       { clipPath: shapePx("cookie12", 960, 540, 1, { rot: -60 }) },
       { clipPath: shapePx("cookie12", 960, 540, 1200, { rot: 0 }) }
     ], { duration: 700, easing: M.dec().easing, fill: "forwards" });
     cover.finished.then(() => { if (running) { el.op.style.clipPath = "none"; cover.cancel(); } }, () => {});
-    to(el.photo, { opacity: "0.3" }, { m: M.std(900) });
+    to(el.photo, { opacity: "0.85" }, { m: M.std(900) });
     to(el.motes, { opacity: "1" }, { m: M.std(900) });
 
     to(el.seed, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 80 });
@@ -477,45 +680,85 @@
     });
     at(900, () => to(el.seed, { transform: "scale(16) rotate(90deg)" }, { m: M.acc(360) }));
 
-    // 1.0 - rotating cookie iris with a soft-teal rim running just ahead
+    /* S1 -> S2: rotating cookie iris with a soft-teal rim running just ahead */
     const irisTiming = { duration: 1150, easing: M.dec().easing, fill: "forwards" };
-    at(T.open - 150, () => act("open"));
-    at(T.open - 110, () => el.iris.animate(cookieFrames(0, 1260, 70), irisTiming));
-    at(T.open, () => {
-      const a = el.campus.animate(cookieFrames(0, 1260, 70), irisTiming);
+    at(T.s2 - 110, () => el.iris.animate(cookieFrames(0, 1260, 70), irisTiming));
+    at(T.s2, () => {
+      const a = el.s2.animate(cookieFrames(0, 1260, 70), irisTiming);
       a.finished.then(() => {
         if (!running) return;
-        el.campus.style.clipPath = "none";
+        el.s2.style.clipPath = "none";
         a.cancel();
         el.iris.getAnimations().forEach((x) => x.cancel());
         el.iris.style.clipPath = HIDDEN;
         set(el.seed, { opacity: "0" });
-        act("campus");
+        act("s2");
       }, () => {});
-      to(el.cam, { transform: "translateX(-90px) scale(1.08)" }, { m: lin(T.warp - T.open) });
     });
 
-    // Campus: the clock drives sky, sun, moon, window lights and the odometer.
-    runClock(year);
-    at(1250, () => S.sun.forEach((n) => {
+    /* S2 - "SINCE 1907" */
+    let zero = { x: 960, y: 540 };
+    at(T.s2, () => {
+      // The camera pushes in on the "0", which the next transition flies through.
+      const c = centreOf(bigOdo.wheels[2].col);
+      if (c.r) zero = { x: c.x, y: c.y - 60 };      // the digits start 60 px low
+      el.s2in.style.transformOrigin = `${zero.x.toFixed(1)}px ${zero.y.toFixed(1)}px`;
+      to(el.s2in, { transform: "scale(1.07)" }, { m: lin(T.s3 - T.s2) });
+      to(el.s2digits, { transform: "translateY(0px)" }, { m: "ss" });
+      to(el.s2digits, { opacity: "1" }, { m: "es" });
+      el.s2deco.forEach((n, i) => to(n, { transform: "scale(1) rotate(0deg)" }, { m: "sg", delay: 150 + i * 90 }));
+    });
+    at(T.s2Label, () => {
+      to(el.s2label, { transform: "scale(1)" }, { m: "sf" });
+      to(el.s2label, { opacity: "1" }, { m: "ef" });
+    });
+    T.s2Stops.forEach((ts, i) => at(ts + 20, () => pulse(bigOdo.wheels[i].col, [
+      { transform: "translateY(0px)" }, { transform: "translateY(-16px)" }, { transform: "translateY(0px)" }
+    ], { duration: 360, easing: "cubic-bezier(0.2,0,0,1)" })));
+    at(T.s2Word, () => to(el.s2word, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(1000) }));
+    at(T.s2En, () => {
+      to(el.s2en, { transform: "translateY(0px)" }, { m: "sd" });
+      to(el.s2en, { opacity: "1" }, { m: "ed" });
+      to(el.s2en, { letterSpacing: "0.42em" }, { m: lin(T.s3 - T.s2En + 600) });
+    });
+
+    /* S2 -> S3: fly through the "0" into the campus at sunset */
+    at(T.s3, () => {
+      act("s23");
+      el.campus.style.clipPath = "none";
+      to(el.cam, { transform: CAM.s3To }, { m: lin(T.s4Cover - T.s3) });
+      to(el.s2in, { transform: "scale(4.2)" }, { m: M.acc(900) });
+      to(el.s2in, { opacity: "0" }, { m: M.std(420), delay: 420 });
+      layeredIris([el.s2, el.s2rimTeal, el.s2rimSoft], zero.x, zero.y, { dur: 1000 }).then(() => {
+        if (running && el.op.dataset.act === "s23") act("campus");
+      });
+    });
+
+    /* S3 - campus rises at sunset, night falls, windows light up */
+    at(T.s3 + 100, () => S.sun.forEach((n) => {
       to(n, { transform: "scale(1) rotate(0deg)" }, { m: "ss" });
       to(n, { opacity: "1" }, { m: "es" });
     }));
-    S.far.forEach((n, i) => at(1300 + i * 120, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
-    S.blds.forEach((n, i) => at(1500 + i * 220, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
-    S.tiers.forEach((n, i) => at(1800 + i * 110, () => {
+    S.far.forEach((n, i) => at(T.s3 + 150 + i * 110, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
+    S.blds.forEach((n, i) => at(T.s3 + 300 + i * 190, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
+    S.tiers.forEach((n, i) => at(T.s3 + 500 + i * 85, () => {
       to(n, { transform: "translateY(0px) scale(1)" }, { m: "sf" });
       to(n, { opacity: "1" }, { m: "ef" });
     }));
-    S.flags.forEach((n, i) => at(2900 + i * 80, () => to(n, { transform: "scaleY(1)" }, { m: "sf" })));
-    S.trees.forEach((n, i) => at(3000 + i * 140, () => to(n, { transform: "scale(1)" }, { m: "sf" })));
-    at(3400, () => S.stone.forEach((n) => {
+    S.flags.forEach((n, i) => at(T.s3 + 1200 + i * 70, () => to(n, { transform: "scaleY(1)" }, { m: "sf" })));
+    S.trees.forEach((n, i) => at(T.s3 + 1300 + i * 110, () => to(n, { transform: "scale(1)" }, { m: "sf" })));
+    at(T.s3 + 1600, () => S.stone.forEach((n) => {
       to(n, { transform: "translateY(0px)" }, { m: "sd" });
       to(n, { opacity: "1" }, { m: "ed" });
     }));
-    at(4200, () => to(el.stoneWord, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(1200) }));
 
-    // Year odometer rolls through the time-lapse
+    /* S3 -> S4: tile wave */
+    at(T.s4, () => tileWipe(() => {
+      set(el.cam, { transform: CAM.s4From });
+      to(el.cam, { transform: CAM.s4To }, { m: lin(T.s5Cover - T.s4Cover) });
+    }));
+
+    /* S4 - day/night time-lapse with the year odometer */
     at(T.yearIn, () => {
       to(el.year, { transform: "translateY(0px)" }, { m: "sd" });
       to(el.year, { opacity: "1" }, { m: "ed" });
@@ -531,10 +774,52 @@
       to(el.year, { transform: "translateY(-40px)" }, { m: M.acc(360) });
     });
 
-    // 10.4 - match-cut: warp into the full moon, the moon becomes the emblem disc
+    /* S4 -> S5: doors */
+    at(T.s5, () => doorWipe(() => {
+      set(el.cam, { transform: CAM.pagodaFrom });
+      to(el.cam, { transform: CAM.pagodaTo }, { m: lin(T.s6Cover - T.s5Cover) });
+      PAGODA.flat().forEach((w) => { w.style.fill = ""; });
+    }));
+
+    /* S5 - pagoda close-up: lamps light tier by tier, the spire flashes */
+    PAGODA.forEach((wins, i) => at(T.lamps + i * 110, () => wins.forEach((w, k) => {
+      w.style.fill = (i + k) % 3 === 0 ? "#c8f1f2" : "#ffe3a3";
+    })));
+    at(T.glint, () => {
+      to(S.glint, { opacity: "1" }, { m: M.std(300) });
+      pulse(S.glint, [{ transform: "scale(0.2)" }, { transform: "scale(1.6)" }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(0.2,0,0,1)" });
+    });
+
+    /* S5 -> S6: curtain */
+    at(T.s6, () => curtainWipe(() => {
+      set(S.glint, { opacity: "0" });
+      set(el.cam, { transform: CAM.stoneFrom });
+      to(el.cam, { transform: CAM.stoneTo }, { m: lin(T.crane - T.s6Cover) });
+    }));
+
+    /* S6 - the name stone: calligraphy carved, English caption */
+    at(T.carve, () => {
+      to(el.stoneWord, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.inout(1400) });
+      set(el.carve, { opacity: "1" });
+      to(el.carve, { transform: "translateX(440px)" }, { m: M.inout(1400) });
+      at(1300, () => to(el.carve, { opacity: "0" }, { m: M.std(300) }));
+    });
+    at(T.captionIn, () => {
+      to(el.caption, { transform: "translateY(0px)" }, { m: "sd" });
+      to(el.caption, { opacity: "1" }, { m: "ed" });
+      to(el.caption, { letterSpacing: "0.3em" }, { m: lin(T.crane - T.captionIn + 400) });
+    });
+
+    /* S6 -> S7: crane up to the moon, it waxes full, warp into it */
+    at(T.crane, () => {
+      to(el.caption, { opacity: "0" }, { m: M.acc(300) });
+      to(el.caption, { transform: "translateY(-30px)" }, { m: M.acc(360) });
+      to(el.cam, { transform: CAM.moon }, { m: M.inout(T.warp - T.crane) });
+    });
+    at(T.wax, () => tweenAttr(SKY.moonCut, "cx", 34, 224, 750));
     at(T.warp, () => { act("warp"); warp(); });
 
-    // 11.75 - arrival: shockwave, decoration flies in, emblem builds
+    /* S7 - arrival: shockwave, decoration flies in, emblem builds */
     at(T.arrive, () => {
       act("mark");
       set(el.mark, { opacity: "1" });
@@ -580,7 +865,7 @@
       pulse(el.emblem, [{ transform: "scale(1)" }, { transform: "scale(1.05)" }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
     });
 
-    // 14.1 - lockup: the mark slides left, bands sweep across and retract
+    /* S7 -> S8: the mark slides left, bands sweep across and retract */
     at(T.lockup, () => {
       lockedUp = true;
       to(el.mark, { transform: "translate(-400px, 0px) scale(0.72)" }, { m: "ss" });
@@ -626,25 +911,21 @@
   /* Match-cut: the moon (full by now) becomes the emblem's white disc. The
      campus rushes past towards the camera, centred on the moon. */
   function warp() {
-    const box = el.op.getBoundingClientRect();
-    const k = box.width / 1920 || 1;
-    const mb = SKY.moon.getBoundingClientRect();
-    const mx = (mb.left + mb.width / 2 - box.left) / k;
-    const my = (mb.top + mb.height / 2 - box.top) / k;
-    const r = mb.width / 2 / k || 86;
+    const m = centreOf(SKY.moon);
+    const r = m.r || 86;
     const glide = { duration: 1350, easing: "cubic-bezier(0.65, 0, 0.25, 1)" };
 
     SKY.moonPos.setAttribute("opacity", "0");
-    set(el.moonDisc, { transform: `translate(${(mx - 960).toFixed(1)}px, ${(my - 540).toFixed(1)}px) scale(${(r / 260).toFixed(4)})`, opacity: "1" });
+    set(el.moonDisc, { transform: `translate(${(m.x - 960).toFixed(1)}px, ${(m.y - 540).toFixed(1)}px) scale(${(r / 260).toFixed(4)})`, opacity: "1" });
     to(el.moonDisc, { transform: "translate(0px, 0px) scale(1)" }, { m: glide });
     to(el.moonDisc, { backgroundColor: "#ffffff" }, { m: M.std(900) });
 
-    el.campus.style.transformOrigin = `${mx.toFixed(1)}px ${my.toFixed(1)}px`;
-    to(el.campus, { transform: `translate(${(960 - mx).toFixed(1)}px, ${(540 - my).toFixed(1)}px) scale(2.9)` }, { m: { duration: 1350, easing: "cubic-bezier(0.55, 0, 0.3, 1)" } });
+    el.campus.style.transformOrigin = `${m.x.toFixed(1)}px ${m.y.toFixed(1)}px`;
+    to(el.campus, { transform: `translate(${(960 - m.x).toFixed(1)}px, ${(540 - m.y).toFixed(1)}px) scale(2.9)` }, { m: { duration: 1350, easing: "cubic-bezier(0.55, 0, 0.3, 1)" } });
     to(el.campus, { opacity: "0" }, { m: M.std(700), delay: 480 });
 
     // Streaks shoot out of the moon and travel with it.
-    set(el.warp, { transform: `translate(${(mx - 960).toFixed(1)}px, ${(my - 540).toFixed(1)}px)` });
+    set(el.warp, { transform: `translate(${(m.x - 960).toFixed(1)}px, ${(m.y - 540).toFixed(1)}px)` });
     to(el.warp, { transform: "translate(0px, 0px)" }, { m: glide });
     STREAKS.forEach((s, i) => {
       for (let rep = 0; rep < 3; rep += 1) {
@@ -659,8 +940,8 @@
       }
     });
 
-    // The background returns behind it.
-    to(el.photo, { opacity: "0.34" }, { m: M.std(900), delay: 500 });
+    // The dark photo background returns behind it.
+    to(el.photo, { opacity: "0.85" }, { m: M.std(900), delay: 500 });
   }
 
   /* Layered reveal: the cover opens a cookie hole from the mark while teal and
@@ -676,33 +957,11 @@
     to(el.lockup, { transform: "translateY(-36px)" }, { m: a(380) });
     to(el.mark, { transform: lockedUp ? "translate(-400px, 0px) scale(1.25)" : "translate(0px, 0px) scale(1.6)" }, { m: a(620) });
     to(el.mark, { opacity: "0" }, { m: a(420), delay: 160 });
-    [el.year, el.moonDisc, el.sweep, el.sweepSoft, ...el.deco].forEach((n, i) => to(n, { opacity: "0" }, { m: a(260), delay: i * 18 }));
-    const ease = M.inout().fn;
-    const LAGS = [0, 0.07, 0.13];
-    const layers = [el.op, el.rimTeal, el.rimSoft];
-    revealing = new Promise((resolve) => {
-      const t0 = performance.now();
-      const dur = 1050;
-      function frame(now) {
-        const p = (now - t0 - 100) / dur;
-        layers.forEach((layer, i) => {
-          const q = Math.min(1, Math.max(0, (p - LAGS[i]) / (1 - LAGS[2])));
-          if (i > 0 && p <= LAGS[i] - 0.001 && p > 0) {
-            layer.style.clipPath = "none";      // rim fills the frame under the cover until its own hole starts
-            return;
-          }
-          if (q > 0) layer.style.clipPath = shapePx("cookie12", cx, 540, 1750 * ease(q), { rot: 50 * q, hole: true });
-        });
-        if (p < 1) requestAnimationFrame(frame);
-        else {
-          layers.forEach((layer) => { layer.style.clipPath = HIDDEN; });
-          el.op.classList.remove("is-live");
-                running = false;
-          revealing = null;
-          resolve();
-        }
-      }
-      requestAnimationFrame(frame);
+    [el.year, el.caption, el.moonDisc, el.sweep, el.sweepSoft, ...el.deco].forEach((n, i) => to(n, { opacity: "0" }, { m: a(260), delay: i * 18 }));
+    revealing = layeredIris([el.op, el.rimTeal, el.rimSoft], cx, 540, { dur: 1050, delay: 100 }).then(() => {
+      el.op.classList.remove("is-live");
+      running = false;
+      revealing = null;
     });
     return revealing;
   }
@@ -712,7 +971,7 @@
   window.CZ.graphic({
     family: "opener",
     defaults: { f0: "2026年秋季学期开学典礼", f1: "2026年9月1日 · 学校体育馆", f2: "reveal" },
-    preload: ["./img/wordmark-cn.png", "./img/photo-campus-a.webp", "./img/photo-campus-b.webp"],
+    preload: ["./img/wordmark-cn.png", "./img/photo-campus-a.webp", "./img/photo-campus-b.webp", "./img/burst.webp"],
     render(raw) {
       endMode = raw.f2 === "hold" ? "hold" : "reveal";
       hasTitle = !!(raw.f0 || raw.f1);

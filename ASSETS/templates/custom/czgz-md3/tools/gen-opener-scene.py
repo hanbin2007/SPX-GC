@@ -5,7 +5,7 @@ Tianning pagoda, inscription stone with pond, trees). Every animatable piece
 carries a class the opener animates: .sky-star, .sun, .moon, .far, .bld,
 .tier, .win, .tree, .stone, .pond, .flag; .sky-day, .sky-dusk, .stars,
 .sun-pos, .moon-pos, .clouds and .day-wash drive the day/night cycle;
-.spin, .sway, .wave and .cloud carry the idle loops.
+.spin, .sway, .wave and .cloud carry the idle loops; .glint flashes on the spire.
 Usage: python3 tools/gen-opener-scene.py
 """
 import math, os
@@ -130,6 +130,8 @@ for i in range(tiers):
 a(f'<g class="tier spire"><rect x="{px-3}" y="{y-110}" width="6" height="110" fill="{C["roof"]}"/>'
   f'<circle cx="{px}" cy="{y-40}" r="12" fill="#c8a95a"/><circle cx="{px}" cy="{y-66}" r="9" fill="#c8a95a"/>'
   f'<circle cx="{px}" cy="{y-88}" r="7" fill="#c8a95a"/><circle cx="{px}" cy="{y-112}" r="5" fill="#e3c77a"/></g>')
+# glint on the spire tip (the pagoda close-up flashes it)
+a(f'<g class="glint" opacity="0"><polygon points="{spark(px, y-112, 46)}" fill="#fff6d8"/></g>')
 # pagoda base hall
 a(f'<g class="tier"><rect x="{px-120}" y="{base}" width="240" height="150" fill="{C["side"]}"/>'
   f'<path d="M{px-160} {base+6} L{px-120} {base-20} L{px+120} {base-20} L{px+160} {base+6} Z" fill="{C["roof"]}"/></g>')

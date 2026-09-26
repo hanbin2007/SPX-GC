@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./gfx/opener.css">
   <script>
     window.SPXGCTemplateDefinition = {
-      description: "常高 M3 · 开场片头（约 20 秒：校园日夜延时 + 校徽演绎）",
+      description: "常高 M3 · 开场片头（约 28 秒，九场：1907 · 校园 · 日夜 · 宝塔 · 校名石 · 校徽 · 标版）",
       playserver: "-",
       playchannel: "1",
       playlayer: "50",
@@ -59,7 +59,7 @@
       <div class="op-seed" id="seed"><i id="seedShape"></i></div>
       <i class="op-iris" id="iris" aria-hidden="true"></i>
       <div class="op-campus" id="campus">
-        <div class="op-cam" id="cam"><i class="cz-wordmark op-stone-word" id="stoneWord"></i></div>
+        <div class="op-cam" id="cam"><i class="cz-wordmark op-stone-word" id="stoneWord"></i><i class="op-carve" id="carve"></i></div>
         <div class="op-year" id="year">
           <div class="op-year__in">
             <div class="cz-slot op-year__label" id="yearLabel"></div>
@@ -67,6 +67,36 @@
             <span class="op-year__range" id="yearRange"></span>
           </div>
         </div>
+      </div>
+      <div class="op-caption" id="caption">
+        <i class="cz-spark"></i><span>CHANGZHOU SENIOR HIGH SCHOOL OF JIANGSU PROVINCE</span><i class="cz-spark"></i>
+      </div>
+      <!-- Scene 2: "SINCE 1907" -->
+      <i class="op-s2rim op-s2rim--soft" id="s2rimSoft" aria-hidden="true"></i>
+      <i class="op-s2rim op-s2rim--teal" id="s2rimTeal" aria-hidden="true"></i>
+      <div class="op-s2" id="s2">
+        <div class="op-s2__photo" aria-hidden="true"><b></b></div>
+        <div class="op-s2__motes" id="s2motes" aria-hidden="true"></div>
+        <div class="op-s2__in" id="s2in">
+          <svg class="op-s2__ring" viewBox="-420 -420 840 840" aria-hidden="true"><path id="s2ring"/></svg>
+          <div class="op-s2__deco" aria-hidden="true">
+            <i class="op-s2__clover"><b></b></i><i class="op-s2__sun"><b></b></i>
+            <i class="op-s2__spark"><b></b></i><i class="op-s2__cookie"><b></b></i>
+          </div>
+          <div class="op-s2__stack">
+            <div class="op-s2__label" id="s2label">SINCE</div>
+            <div class="op-s2__digits" id="s2digits"></div>
+            <i class="cz-wordmark op-s2__word" id="s2word"></i>
+            <div class="op-s2__en" id="s2en">CHANGZHOU SENIOR HIGH SCHOOL OF JIANGSU PROVINCE</div>
+          </div>
+        </div>
+      </div>
+      <!-- Scene-to-scene wipes inside the campus -->
+      <div class="op-fx" aria-hidden="true">
+        <div class="op-tiles" id="tiles"></div>
+        <i class="op-door op-door--l" id="doorL"><b></b></i>
+        <i class="op-door op-door--r" id="doorR"><b></b></i>
+        <div class="op-curtain" id="curtain"></div>
       </div>
       <div class="op-warp" id="warp" aria-hidden="true"></div>
       <i class="op-moon" id="moonDisc" aria-hidden="true"></i>
