@@ -4,7 +4,8 @@ Flat M3-style vector drawing inspired by the campus (teaching buildings,
 Tianning pagoda, inscription stone with pond, trees). Every animatable piece
 carries a class the opener animates: .sky-star, .sun, .moon, .far, .bld,
 .tier, .win, .tree, .stone, .pond, .flag; .sky-day, .sky-dusk, .stars,
-.sun-pos, .moon-pos and .day-wash drive the day/night cycle.
+.sun-pos, .moon-pos, .clouds and .day-wash drive the day/night cycle;
+.spin, .sway, .wave and .cloud carry the idle loops; .glint flashes on the spire.
 Usage: python3 tools/gen-opener-scene.py
 """
 import math, os
@@ -82,9 +83,18 @@ for i in range(96):
     rr = 1 - 0.12 * ((1 - math.cos(8 * t)) / 2) ** 0.8
     sun.append(f"{110*rr*math.cos(t):.1f},{110*rr*math.sin(t):.1f}")
 a('<g class="sun-pos"><circle class="sun-glow" r="300" fill="url(#opGlow)"/>'
-  f'<g class="sun"><polygon points="{" ".join(sun)}" fill="#fff1c7"/></g></g>')
+  f'<g class="sun"><g class="spin"><polygon points="{" ".join(sun)}" fill="#fff1c7"/></g></g></g>')
 a('<g class="moon-pos"><circle r="220" fill="url(#opMoonGlow)"/>'
   '<g class="moon"><circle r="80" fill="#eef6ff" mask="url(#opMoonCut)"/></g></g>')
+
+# Clouds: M3 pill clusters drifting across the sky (their opacity follows daylight).
+def cloud(x, y, k):
+    parts = [(0, 0, 220, 56), (40, -34, 120, 56), (110, -18, 90, 46)]
+    return "".join(f'<rect x="{x + dx*k:.1f}" y="{y + dy*k:.1f}" width="{w*k:.1f}" height="{h*k:.1f}" rx="{h*k/2:.1f}" fill="#ffffff"/>' for dx, dy, w, h in parts)
+a('<g class="clouds" opacity="0.4">')
+for i, (x, y, k) in enumerate([(120, 200, 1.0), (760, 140, 0.8), (1380, 250, 1.15), (420, 330, 0.65), (1700, 120, 0.7)]):
+    a(f'<g class="cloud cloud-{i}">{cloud(x, y, k)}</g>')
+a('</g>')
 
 # far skyline silhouettes
 a('<g class="far-layer">')
@@ -120,6 +130,8 @@ for i in range(tiers):
 a(f'<g class="tier spire"><rect x="{px-3}" y="{y-110}" width="6" height="110" fill="{C["roof"]}"/>'
   f'<circle cx="{px}" cy="{y-40}" r="12" fill="#c8a95a"/><circle cx="{px}" cy="{y-66}" r="9" fill="#c8a95a"/>'
   f'<circle cx="{px}" cy="{y-88}" r="7" fill="#c8a95a"/><circle cx="{px}" cy="{y-112}" r="5" fill="#e3c77a"/></g>')
+# glint on the spire tip (the pagoda close-up flashes it)
+a(f'<g class="glint" opacity="0"><polygon points="{spark(px, y-112, 46)}" fill="#fff6d8"/></g>')
 # pagoda base hall
 a(f'<g class="tier"><rect x="{px-120}" y="{base}" width="240" height="150" fill="{C["side"]}"/>'
   f'<path d="M{px-160} {base+6} L{px-120} {base-20} L{px+120} {base-20} L{px+160} {base+6} Z" fill="{C["roof"]}"/></g>')
@@ -180,7 +192,7 @@ a('<g class="flags">')
 for k, x in enumerate(range(90, 560, 58)):
     col = C["teal"] if k % 2 == 0 else "#d8e4fa"
     a(f'<g class="flag"><rect x="{x}" y="{GROUND-120}" width="4" height="120" fill="{C["trunk"]}"/>'
-      f'<rect x="{x+4}" y="{GROUND-116}" width="18" height="48" rx="9" fill="{col}"/></g>')
+      f'<g class="wave"><rect x="{x+4}" y="{GROUND-116}" width="18" height="48" rx="9" fill="{col}"/></g></g>')
 a('</g>')
 
 # trees (cookie canopies)
@@ -189,9 +201,9 @@ for (x, r, hgt, col, n) in [(560, 62, 110, C["teal2"], 9), (660, 48, 90, C["teal
                             (1280, 52, 100, C["teal"], 7), (300, 56, 96, C["teal"], 9), (1760, 64, 118, C["teal2"], 9),
                             (1850, 44, 86, C["teal"], 7), (1440, 40, 84, C["teal3"], 6)]:
     cy = GROUND - hgt
-    a(f'<g class="tree"><rect x="{x-5}" y="{cy}" width="10" height="{hgt}" rx="4" fill="{C["trunk"]}"/>'
+    a(f'<g class="tree"><g class="sway"><rect x="{x-5}" y="{cy}" width="10" height="{hgt}" rx="4" fill="{C["trunk"]}"/>'
       f'<polygon points="{cookie(x, cy, r, n, 0.12)}" fill="{col}"/>'
-      f'<polygon points="{cookie(x - r*0.25, cy - r*0.2, r*0.45, 6, 0.1)}" fill="#ffffff" opacity="0.12"/></g>')
+      f'<polygon points="{cookie(x - r*0.25, cy - r*0.2, r*0.45, 6, 0.1)}" fill="#ffffff" opacity="0.12"/></g></g>')
 a('</g>')
 
 # pond + stone
