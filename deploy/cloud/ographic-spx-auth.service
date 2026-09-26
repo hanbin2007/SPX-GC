@@ -1,0 +1,33 @@
+[Unit]
+Description=OGraphic SPX login gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ographic-auth
+Group=ographic-auth
+SupplementaryGroups=ographic-spx
+WorkingDirectory=/opt/ographic-spx/app
+Environment=NODE_ENV=production
+Environment=SPX_AUTH_DIR=/opt/ographic-spx/auth
+Environment=HOME=/opt/ographic-spx/auth
+ExecStart=/opt/ographic-spx/node/bin/node deploy/cloud/auth-gateway.js
+Restart=on-failure
+RestartSec=3
+MemoryMax=160M
+CPUQuota=50%
+TasksMax=48
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

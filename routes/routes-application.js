@@ -858,6 +858,10 @@ router.get('/gc/:foldername/:filename/:mode?', cors(), spxAuth.CheckLogin, async
 		// Added in 1.3.0
 		if (req.params.mode && req.params.mode.toLowerCase() === 'light') {
 			return 'view-controllermini';
+		} else if (req.params.mode && req.params.mode.toLowerCase() === 'classic') {
+			return 'view-controller';
+		} else if (fileDataAsJSON.projectFormat === 'SPX') {
+			return 'view-studio';
 		} else {
 			return 'view-controller';
 		}
@@ -1277,7 +1281,7 @@ router.post('/gc/:foldername/:filename/', spxAuth.CheckLogin, async (req, res) =
 	}
 }); // gc post end
 
-router.post('/gc/playout', spxAuth.CheckLogin, async (req, res) => {
+async function handlePlayout(req, res) {
 	// Request: data object (command, datafile, templateIndex)
 	// Returns: AJAX response
 	//
@@ -1677,7 +1681,10 @@ router.post('/gc/playout', spxAuth.CheckLogin, async (req, res) => {
 		logger.error('ERROR in /gc/playout. ' + error);
 		res.status(500).send('Error in /gc/playout: ' + error)  // error 500 AJAX RESPONSE
 	};
-}); // playout ended
+} // playout ended
+
+router.post('/gc/playout', spxAuth.CheckLogin, handlePlayout);
+router.handlePlayout = handlePlayout;
 
 
 router.post('/gc/playaudio', spxAuth.CheckLogin, (req, res) => {

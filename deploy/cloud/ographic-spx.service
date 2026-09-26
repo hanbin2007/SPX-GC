@@ -1,0 +1,33 @@
+[Unit]
+Description=OGraphic SPX graphics controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ographic-spx
+Group=ographic-spx
+WorkingDirectory=/opt/ographic-spx/app
+Environment=NODE_ENV=production
+Environment=SPX_BIND_HOST=127.0.0.1
+Environment=HOME=/opt/ographic-spx
+ExecStart=/opt/ographic-spx/node/bin/node server.js
+Restart=on-failure
+RestartSec=5
+MemoryMax=400M
+CPUQuota=50%
+TasksMax=64
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/ographic-spx
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

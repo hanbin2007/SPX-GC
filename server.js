@@ -74,7 +74,11 @@ const logger = require('./utils/logger.js');
 
 // STATICS
 app.use(express.static(path.join(__dirname,('static'))))
+const studioLogoAssets = require('./utils/studio_logo_assets.js');
+app.use('/templates/custom/czgz-md3/logos', express.static(studioLogoAssets.uploadDir()))
 app.use(express.static(path.resolve(spx.getStartUpFolder(),'ASSETS')))
+app.use('/vendor/tabulator', express.static(path.join(__dirname, 'node_modules', 'tabulator-tables', 'dist')))
+app.use('/vendor/papaparse', express.static(path.join(__dirname, 'node_modules', 'papaparse')))
 const ipad = ip.address();
 var pjson = require('./package.json');
 var packageversion = pjson.version;
@@ -804,6 +808,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 
 // Middleware
+app.use('/api/studio/', bodyParser.json({ limit: '3mb' }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
@@ -816,6 +821,9 @@ app.use(session({
 global.user = "";
 
 // Router files
+const ROUTEstudio = require('./routes/routes-studio.js');
+app.use('/api/studio/', ROUTEstudio);
+
 const ROUTEfiles = require('./routes/routes-api.js');
 app.use('/api/', ROUTEfiles);
 

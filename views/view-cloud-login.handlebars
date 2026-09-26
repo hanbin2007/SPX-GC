@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 | SPX Studio</title>
+  <link rel="icon" href="/auth/logo.png">
+  <link rel="stylesheet" href="/auth/login.css">
+</head>
+<body>
+  <header class="topbar"><img src="/auth/logo.png" width="34" height="34" alt=""><span>SPX <small>Graphics Studio</small></span></header>
+  <main>
+    <section class="login-panel" aria-labelledby="login-title">
+      <img class="mark" src="/auth/logo.png" width="72" height="72" alt="SPX 标志">
+      <h1 id="login-title">登录播控</h1>
+      <p class="subtitle">SPX Graphics Controller</p>
+      {{#if error}}<p class="error" role="alert">{{error}}</p>{{/if}}
+      <form action="/auth/login" method="post">
+        <input type="hidden" name="next" value="{{next}}">
+        <label for="username">账号</label>
+        <input id="username" name="username" type="text" value="{{username}}" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="64" required autofocus>
+        <label for="password">密码</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" maxlength="200" required>
+        <button type="submit">登录</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

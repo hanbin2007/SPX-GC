@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{folder}} / {{filebasename}} | SPX Studio</title>
+  <link rel="icon" href="/img/spx-gc.ico">
+  <link rel="stylesheet" href="/vendor/tabulator/css/tabulator_simple.min.css">
+  <link rel="stylesheet" href="/css/studio.css">
+  <script defer src="/js/fontawesome.all.min.js"></script>
+  <script defer src="/js/socket.io.js"></script>
+  <script defer src="/vendor/tabulator/js/tabulator.min.js"></script>
+  <script defer src="/vendor/papaparse/papaparse.min.js"></script>
+  <script defer src="/js/studio.js"></script>
+</head>
+<body>
+  <div id="studio" class="studio" data-project="{{folder}}" data-rundown="{{filebasename}}">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/img/spx_online.png" width="30" height="30" alt="">
+        <div><strong>{{folder}}</strong><span>{{filebasename}} · SPX Studio</span></div>
+      </div>
+      <nav class="primary-nav" aria-label="主视图">
+        <button id="tabPlayout" class="nav-tab is-active" type="button" aria-selected="true"><i class="fas fa-th-large" aria-hidden="true"></i> 播控</button>
+        <button id="tabLogos" class="nav-tab" type="button" aria-selected="false"><i class="fas fa-images" aria-hidden="true"></i> 标志组</button>
+        <button id="tabSources" class="nav-tab" type="button" aria-selected="false"><i class="fas fa-table" aria-hidden="true"></i> 数据源</button>
+      </nav>
+      <div class="top-actions">
+        <span id="connectionStatus" class="connection"><span class="connection-dot"></span><span>连接中</span></span>
+        <span id="sessionUser" class="session-user" hidden></span>
+        <form id="logoutForm" action="/auth/logout" method="post" hidden><button class="icon-link" type="submit" title="退出登录" aria-label="退出登录"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></button></form>
+        <a class="icon-link" href="/shows" title="返回项目" aria-label="返回项目"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+        <a class="icon-link" href="/gc/{{folder}}/{{filebasename}}/classic" title="经典播控" aria-label="经典播控"><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
+      </div>
+    </header>
+
+    <main>
+      <section id="playoutView" class="playout-view" aria-label="播控">
+        <div class="view-toolbar">
+          <div class="toolbar-title"><h1>播控</h1><span id="itemCount"></span></div>
+          <div class="toolbar-filters">
+            <label class="search-field"><i class="fas fa-search" aria-hidden="true"></i><input id="itemSearch" type="search" placeholder="搜索包装或播出内容" aria-label="搜索包装"></label>
+            <label class="layer-filter">输出层 <select id="layerFilter"><option value="">全部</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+            <button id="refreshState" class="icon-button" type="button" title="刷新" aria-label="刷新"><i class="fas fa-sync-alt" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <div class="work-layout">
+          <div class="grid-scroll"><div id="itemGrid" class="item-grid"></div></div>
+          <aside id="inspector" class="inspector" aria-label="包装属性">
+            <div id="inspectorEmpty" class="inspector-empty">选择一个包装</div>
+            <div id="inspectorBody" hidden>
+              <div class="inspector-heading"><div><span id="inspectorType" class="eyebrow"></span><h2 id="inspectorTitle"></h2></div><div class="inspector-heading-actions"><span id="inspectorLayer" class="layer-chip"></span><button id="closeInspector" class="icon-button" type="button" title="返回播控网格" aria-label="返回播控网格"><i class="fas fa-times" aria-hidden="true"></i></button></div></div>
+              <div class="inspector-scroll">
+                <section id="genericSourceSection" class="property-section">
+                  <h3>数据来源</h3>
+                  <label class="field-label">Datasource<select id="itemSource"></select></label>
+                  <div id="sourceModeGroup" class="property-grid" hidden>
+                    <label class="field-label">取数方式<select id="itemMode"><option value="row">单行</option><option value="range">连续范围</option></select></label>
+                    <label id="singleRowField" class="field-label">数据行<input id="itemRow" type="number" min="1" step="1"></label>
+                  </div>
+                  <div id="rangeOptions" hidden>
+                    <div class="property-grid">
+                      <label class="field-label">起始行<input id="rangeStart" type="number" min="1" step="1"></label>
+                      <label class="field-label">结束行<input id="rangeEnd" type="number" min="1" step="1"></label>
+                    </div>
+                    <div class="property-grid">
+                      <label class="field-label">列表字段<select id="rangeField"></select></label>
+                      <label class="field-label">内容列<select id="rangeTextColumn"></select></label>
+                    </div>
+                    <label class="field-label">时间列（可选）<select id="rangeTimeColumn"></select></label>
+                  </div>
+                  <div id="rangePreviewHeading" class="table-caption" hidden><strong>选中数据</strong><span id="rangeCount"></span></div>
+                  <div id="itemSourceTable" class="compact-table range-preview" hidden></div>
+                  <button id="seedSource" class="subtle-command" type="button"><i class="fas fa-plus" aria-hidden="true"></i> 将当前内容建为数据源</button>
+                </section>
+                <section id="genericFieldsSection" class="property-section">
+                  <h3>字段配置</h3>
+                  <div id="fieldTable" class="compact-table"></div>
+                </section>
+                <div id="bugItemEditor" hidden>
+                  <section class="property-section">
+                    <h3>角标显示</h3>
+                    <div class="property-grid">
+                      <label class="field-label">状态<select id="bugStatus"><option value="live">直播</option><option value="replay">回放</option><option value="record">录播</option><option value="none">不显示</option></select></label>
+                      <label class="field-label">角标跟随<select id="bugFollow"><option value="1">1 组</option><option value="2">2 组</option><option value="3">3 组</option><option value="4">4 组</option><option value="school">固定学校标志</option></select></label>
+                    </div>
+                    <label class="field-label logo-event-label">活动名称<input id="bugEvent" type="text" placeholder="可留空"></label>
+                    <div class="logo-switches"><label><input id="bugClock" type="checkbox"> 显示时钟</label><label><input id="bugName" type="checkbox"> 显示名称</label></div>
+                  </section>
+                </div>
+                <section class="property-section">
+                  <h3>播出设置</h3>
+                  <div class="property-grid">
+                    <label class="field-label">Web 输出层<select id="outputLayer"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="-">关闭</option></select></label>
+                    <label class="field-label">收起方式<select id="itemOut"><option value="manual">手动收起</option><option value="none">播一次</option><option value="timer">自动收起</option></select></label>
+                  </div>
+                  <label id="timeoutField" class="field-label timeout-field" hidden>自动收起时间（秒）<input id="timeoutSeconds" type="number" min="1" max="3600" step="1"></label>
+                </section>
+              </div>
+              <div class="inspector-footer"><span id="bindingStatus"></span><button id="saveBinding" class="primary-command" type="button"><i class="fas fa-save" aria-hidden="true"></i> 保存配置</button></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="logosView" class="logos-view" aria-label="项目标志组" hidden>
+        <div class="view-toolbar">
+          <div class="toolbar-title"><h1>标志组</h1><span>{{folder}} 项目</span></div>
+          <div class="logo-save-actions"><span id="logoLibraryStatus"></span><button id="saveLogoLibrary" class="primary-command" type="button"><i class="fas fa-save" aria-hidden="true"></i> 保存标志组</button></div>
+        </div>
+        <div id="logoEditor" class="logo-workspace" hidden>
+          <div class="logo-group-pane">
+            <section class="property-section">
+              <h3>项目标志组</h3>
+              <div id="logoGroupTabs" class="logo-group-tabs" role="tablist" aria-label="标志组"></div>
+              <div id="logoGroupSummary" class="logo-group-summary"></div>
+              <div class="property-grid logo-group-controls">
+                <label class="field-label">切换方式<select id="logoGroupMode"><option value="auto">自动轮播</option><option value="manual">手动切换</option></select></label>
+                <label class="field-label">默认间隔（秒）<input id="logoGroupInterval" type="number" min="3" max="3600" step="1"></label>
+              </div>
+              <div id="logoGroupMembers" class="logo-group-members"></div>
+              <label class="field-label school-dwell">学校标志停留（秒）<input id="logoSchoolDwell" type="number" min="3" max="3600" step="1" placeholder="使用组默认间隔"></label>
+            </section>
+            <section class="property-section">
+              <details id="logoDatasourceDetails" class="logo-datasource-details">
+                <summary>从数据源读取所属组</summary>
+                <label class="field-label">数据源<select id="logoGroupSource"></select></label>
+                <label id="logoSourceRowLabel" class="field-label" hidden>数据行<select id="logoGroupRow"></select></label>
+                <div id="logoGroupMappings"></div>
+              </details>
+            </section>
+          </div>
+          <div class="logo-assets-pane">
+            <section class="property-section">
+              <div class="logo-section-heading"><h3>图片库</h3><button id="logoUploadButton" class="tool-command" type="button" title="上传 PNG、JPG、WebP 或 GIF"><i class="fas fa-upload" aria-hidden="true"></i> 上传图片</button></div>
+              <div id="logoSlots" class="logo-slots"></div>
+              <div id="logoSlotEditor" class="logo-slot-editor"></div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section id="sourcesView" class="sources-view" aria-label="数据源" hidden>
+        <div class="source-sidebar">
+          <div class="sidebar-heading"><h1>数据源</h1><button id="newSource" class="icon-button" type="button" title="新建数据源" aria-label="新建数据源"><i class="fas fa-plus" aria-hidden="true"></i></button></div>
+          <div id="sourceList" class="source-list"></div>
+          <label class="archived-toggle"><input id="showArchived" type="checkbox"> 显示已归档</label>
+        </div>
+        <div class="source-workspace">
+          <div id="sourceEmpty" class="source-empty">选择一个数据源</div>
+          <div id="sourceBody" hidden>
+            <div class="source-heading"><div><span class="eyebrow">可编辑数据</span><input id="sourceName" class="source-title" aria-label="数据源名称" maxlength="100"></div><span id="sourceMeta"></span></div>
+            <div class="source-toolbar">
+              <button id="addRow" class="tool-command" type="button" title="添加行"><i class="fas fa-plus" aria-hidden="true"></i> 行</button>
+              <button id="addColumn" class="tool-command" type="button" title="添加列"><i class="fas fa-plus" aria-hidden="true"></i> 列</button>
+              <button id="removeRows" class="icon-button" type="button" title="删除选中行" aria-label="删除选中行"><i class="fas fa-trash" aria-hidden="true"></i></button>
+              <span class="toolbar-spacer"></span>
+              <button id="duplicateSource" class="icon-button" type="button" title="复制数据源" aria-label="复制数据源"><i class="far fa-copy" aria-hidden="true"></i></button>
+              <button id="archiveSource" class="icon-button" type="button" title="归档数据源" aria-label="归档数据源"><i class="fas fa-archive" aria-hidden="true"></i></button>
+              <button id="importCsv" class="icon-button" type="button" title="导入 CSV 为新数据源" aria-label="导入 CSV"><i class="fas fa-file-import" aria-hidden="true"></i></button>
+              <button id="exportCsv" class="icon-button" type="button" title="导出 CSV" aria-label="导出 CSV"><i class="fas fa-file-export" aria-hidden="true"></i></button>
+              <button id="saveSource" class="primary-command" type="button"><i class="fas fa-save" aria-hidden="true"></i> 保存数据</button>
+            </div>
+            <div id="sourceTable" class="source-table"></div>
+            <div class="source-footer"><span id="sourceStatus"></span><span id="sourceCount"></span></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <input id="csvInput" type="file" accept=".csv,text/csv" hidden>
+    <input id="logoUploadInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    <dialog id="nameDialog" class="studio-dialog"><form method="dialog"><h2 id="dialogTitle"></h2><label class="field-label" id="dialogLabel">名称<input id="dialogInput" required maxlength="100" autocomplete="off"></label><div class="dialog-actions"><button value="cancel" type="submit" formnovalidate class="tool-command">取消</button><button id="dialogConfirm" value="confirm" type="submit" class="primary-command">确定</button></div></form></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+</body>
+</html>
