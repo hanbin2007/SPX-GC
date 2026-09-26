@@ -1,4 +1,5 @@
-/* Opening title sequence (~10 s): shape burst -> drawn campus -> emblem build -> lockup. */
+/* Opening title sequence (~16 s): shape burst -> drawn campus through a day/night
+   time-lapse -> emblem build -> lockup. */
 
 .op {
   position: absolute;
@@ -81,12 +82,15 @@
 .op-scene .bld,
 .op-scene .far,
 .op-scene .stone,
-.op-scene .sun {
+.op-scene .sun,
+.op-scene .moon {
   transform-box: fill-box;
   transform-origin: 50% 100%;
 }
 
-.op-scene .sun { transform-origin: 50% 50%; }
+.op-scene .sun,
+.op-scene .moon { transform-origin: 50% 50%; }
+.op-scene .win { transition: fill 0.4s linear; }
 .op-scene .sky-star { animation: op-twinkle 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .op-scene .sky-star:nth-child(3n) { animation-delay: -1.1s; }
 .op-scene .sky-star:nth-child(3n + 1) { animation-delay: -2.2s; }
@@ -119,6 +123,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  text-shadow: 0 4px 24px rgba(8, 22, 48, 0.35);
 }
 
 .op-year__label {
@@ -135,16 +140,34 @@
 
 .op-year__digits {
   display: flex;
-  margin-top: 6px;
+  margin-top: 10px;
   font-size: 168px;
   font-weight: 700;
-  line-height: 1.08;
+  line-height: 176px;
   font-variant-numeric: tabular-nums;
   font-variation-settings: "ROND" 100, "opsz" 144;
   letter-spacing: -0.01em;
 }
 
-.op-year__digits .cz-slot { line-height: 1.08; }
+/* Mechanical odometer: each column is a 0-9-0 strip that rolls upward. */
+.op-odo {
+  position: relative;
+  height: 176px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
+}
+
+.op-odo > span {
+  display: block;
+  will-change: transform;
+}
+
+.op-odo b {
+  display: block;
+  height: 176px;
+  font-weight: inherit;
+}
 
 .op-year__range {
   margin-top: 2px;

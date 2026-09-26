@@ -2,8 +2,9 @@
 
 Flat M3-style vector drawing inspired by the campus (teaching buildings,
 Tianning pagoda, inscription stone with pond, trees). Every animatable piece
-carries a class the opener animates: .sky-star, .sun, .far, .bld, .tier,
-.win, .tree, .stone, .pond, .flag.
+carries a class the opener animates: .sky-star, .sun, .moon, .far, .bld,
+.tier, .win, .tree, .stone, .pond, .flag; .sky-day, .sky-dusk, .stars,
+.sun-pos, .moon-pos and .day-wash drive the day/night cycle.
 Usage: python3 tools/gen-opener-scene.py
 """
 import math, os
@@ -45,27 +46,45 @@ a('<defs>'
   '<linearGradient id="opSky" x1="0" y1="0" x2="0" y2="1">'
   '<stop offset="0" stop-color="#0b1d3a"/><stop offset="0.62" stop-color="#15356a"/><stop offset="1" stop-color="#23508f"/>'
   '</linearGradient>'
+  '<linearGradient id="opSkyDay" x1="0" y1="0" x2="0" y2="1">'
+  '<stop offset="0" stop-color="#2d6cb5"/><stop offset="0.55" stop-color="#5fa6de"/><stop offset="0.82" stop-color="#9fd6ec"/><stop offset="1" stop-color="#c8f1f2"/>'
+  '</linearGradient>'
+  '<linearGradient id="opDusk" x1="0" y1="0" x2="0" y2="1">'
+  '<stop offset="0.3" stop-color="#ff9f8a" stop-opacity="0"/><stop offset="0.66" stop-color="#ff9f8a" stop-opacity="0.55"/><stop offset="0.8" stop-color="#ffc49a" stop-opacity="0.95"/>'
+  '</linearGradient>'
   '<radialGradient id="opGlow" cx="0.5" cy="0.5" r="0.5">'
-  '<stop offset="0" stop-color="#57cfd3" stop-opacity="0.35"/><stop offset="1" stop-color="#57cfd3" stop-opacity="0"/>'
+  '<stop offset="0" stop-color="#fff4d6" stop-opacity="0.55"/><stop offset="1" stop-color="#fff4d6" stop-opacity="0"/>'
   '</radialGradient>'
+  '<radialGradient id="opMoonGlow" cx="0.5" cy="0.5" r="0.5">'
+  '<stop offset="0" stop-color="#c8f1f2" stop-opacity="0.35"/><stop offset="1" stop-color="#c8f1f2" stop-opacity="0"/>'
+  '</radialGradient>'
+  '<mask id="opMoonCut"><circle cx="0" cy="0" r="80" fill="#fff"/><circle cx="34" cy="-24" r="70" fill="#000"/></mask>'
   '</defs>')
+# Sky layers. The opener crossfades them from the sun's height (day/night cycle).
 a(f'<rect class="sky" width="{W}" height="{H}" fill="url(#opSky)"/>')
+a(f'<rect class="sky-day" width="{W}" height="{H}" fill="url(#opSkyDay)" opacity="0"/>')
+a(f'<rect class="sky-dusk" width="{W}" height="{H}" fill="url(#opDusk)" opacity="0"/>')
 
 # stars
 import random
 random.seed(7)
+a('<g class="stars">')
 for i in range(26):
     x = random.uniform(40, W - 40); y = random.uniform(40, 520); r = random.uniform(4, 11)
     a(f'<polygon class="sky-star" points="{spark(x, y, r)}" fill="#c8f1f2" opacity="0.8"/>')
+a('</g>')
 
-# sun (sunny 8) + glow
-a('<circle class="sun-glow" cx="1180" cy="360" r="330" fill="url(#opGlow)"/>')
+# Sun (sunny 8) and crescent moon, drawn around the origin; the opener moves
+# them along an elliptical orbit behind the skyline.
 sun = []
 for i in range(96):
     t = i / 96 * 2 * math.pi
     rr = 1 - 0.12 * ((1 - math.cos(8 * t)) / 2) ** 0.8
-    sun.append(f"{1180 + 170*rr*math.cos(t):.1f},{360 + 170*rr*math.sin(t):.1f}")
-a(f'<g class="sun"><polygon points="{" ".join(sun)}" fill="#c8f1f2" opacity="0.92"/></g>')
+    sun.append(f"{110*rr*math.cos(t):.1f},{110*rr*math.sin(t):.1f}")
+a('<g class="sun-pos"><circle class="sun-glow" r="300" fill="url(#opGlow)"/>'
+  f'<g class="sun"><polygon points="{" ".join(sun)}" fill="#fff1c7"/></g></g>')
+a('<g class="moon-pos"><circle r="220" fill="url(#opMoonGlow)"/>'
+  '<g class="moon"><circle r="80" fill="#eef6ff" mask="url(#opMoonCut)"/></g></g>')
 
 # far skyline silhouettes
 a('<g class="far-layer">')
@@ -186,6 +205,8 @@ stone = (f'M690 {GROUND+70} C660 {GROUND+20} 690 {GROUND-58} 760 {GROUND-70} '
          f'L780 {GROUND+88} C730 {GROUND+88} 700 {GROUND+84} 690 {GROUND+70} Z')
 a(f'<g class="stone"><path d="{stone}" fill="{C["stone"]}"/>'
   f'<path d="M700 {GROUND+60} C760 {GROUND+80} 1100 {GROUND+80} 1236 {GROUND+30} L1232 {GROUND+60} C1200 {GROUND+84} 1100 {GROUND+86} 780 {GROUND+88} C730 {GROUND+88} 704 {GROUND+80} 700 {GROUND+60} Z" fill="{C["stoneShade"]}"/></g>')
+# Daylight wash: lifts the whole drawing during the day.
+a(f'<rect class="day-wash" width="{W}" height="{H}" fill="#d9efff" opacity="0" style="mix-blend-mode: soft-light"/>')
 a('</svg>')
 
 svg = "".join(out)

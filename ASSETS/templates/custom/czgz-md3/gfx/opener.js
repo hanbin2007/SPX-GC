@@ -1,13 +1,15 @@
-/* Opening title sequence, about 10 s.
+/* Opening title sequence, about 16 s.
    0.0  M3 shape morph burst
-   1.1  campus drawn from the reference photos: buildings rise, pagoda stacks
-        up, trees pop, stone calligraphy reveals, windows light up, 1907 rolls
-        to this year
-   4.5  camera dives in, the view closes into the emblem's white disc
-   5.2  emblem builds: ring draws, colour fields trace then fill, ring letters
-        pop in order, seal, sheen
-   7.4  lockup with the calligraphy name, English name, title
-   10.1 reveal the programme through an opening cookie (or hold) */
+   1.1  campus drawn from the reference photos opens at sunset: buildings
+        rise, pagoda stacks up, trees pop, stone calligraphy reveals, windows
+        light up left to right as night falls
+   3.6  time-lapse: two full days and nights while the odometer rolls 1907
+        to this year, settling on night with "建校 N 年"
+   10.3 camera dives in, the view closes into the emblem's white disc
+   11.0 emblem builds: ring draws, colour fields trace then fill, ring
+        letters pop in order, seal, sheen
+   13.3 lockup with the calligraphy name, English name, title
+   15.9 reveal the programme through an opening cookie (or hold) */
 (function () {
   "use strict";
 
@@ -44,7 +46,7 @@
   const scene = el.cam.querySelector("svg");
   const q = (sel) => [...scene.querySelectorAll(sel)];
   const S = {
-    sun: q(".sun"),
+    sun: q(".sun, .moon"),
     far: q(".far"),
     tiers: q(".tier"),
     blds: q(".bld"),
@@ -52,6 +54,14 @@
     trees: q(".tree"),
     stone: q(".stone, .pond"),
     wins: q(".win")
+  };
+  const SKY = {
+    day: scene.querySelector(".sky-day"),
+    dusk: scene.querySelector(".sky-dusk"),
+    stars: scene.querySelector(".stars"),
+    wash: scene.querySelector(".day-wash"),
+    sunPos: scene.querySelector(".sun-pos"),
+    moonPos: scene.querySelector(".moon-pos")
   };
   // Lit window colours: mostly teal-soft, some warm.
   const LIT = S.wins.map((w, i) => ((i * 7) % 10 < 3 ? "#ffe3a3" : "#c8f1f2"));
@@ -116,21 +126,149 @@
 
   const lin = (duration) => ({ duration, easing: "linear" });
 
-  /* ---------------- Year odometer ---------------- */
+  /* ---------------- Campus clock ---------------- */
 
-  function setYear(text, animate) {
-    const slots = [...el.yearDigits.children];
-    [...text].forEach((ch, i) => {
-      if (animate) swap(slots[i], ch, { m: "sf" });
-      else snap(slots[i], ch);
+  // Campus cues (ms from play). The orbit drifts through sunset, speeds up
+  // into a time-lapse of two full days, then brakes onto night.
+  const T = {
+    open: 1100, firstLight: 2500, yearIn: 3300,
+    lapse: 3600, cruise: 4600, brake: 8400, stop: 9600,
+    roll0: 3800, roll1: 9400, label: 9550, dive: 10300
+  };
+  const ORBIT = { a0: 70, a1: 150, a2: 900 };   // sun angle from the zenith, clockwise
+  const V0 = (ORBIT.a1 - ORBIT.a0) / (T.lapse - T.open);
+  const UP = T.cruise - T.lapse;
+  const DOWN = T.stop - T.brake;
+  const VMAX = (ORBIT.a2 - ORBIT.a1 - V0 * UP / 2) / (UP / 2 + (T.brake - T.cruise) + DOWN / 2);
+  const A_CRUISE = ORBIT.a1 + V0 * UP + (VMAX - V0) * UP / 2;
+  const A_BRAKE = A_CRUISE + VMAX * (T.brake - T.cruise);
+
+  // Speed ramps are smoothsteps, so the angle is their exact integral.
+  function orbitAngle(t) {
+    if (t <= T.open) return ORBIT.a0;
+    if (t < T.lapse) return ORBIT.a0 + V0 * (t - T.open);
+    if (t < T.cruise) {
+      const u = (t - T.lapse) / UP;
+      return ORBIT.a1 + V0 * (t - T.lapse) + (VMAX - V0) * UP * (u * u * u - u * u * u * u / 2);
+    }
+    if (t < T.brake) return A_CRUISE + VMAX * (t - T.cruise);
+    if (t < T.stop) {
+      const u = (t - T.brake) / DOWN;
+      return A_BRAKE + VMAX * DOWN * (u - u * u * u + u * u * u * u / 2);
+    }
+    return ORBIT.a2;
+  }
+
+  const clamp01 = (x) => Math.min(1, Math.max(0, x));
+  const smooth = (a, b, x) => { const u = clamp01((x - a) / (b - a)); return u * u * (3 - 2 * u); };
+
+  // Each window switches on once it is dark enough; its threshold grows
+  // left to right, so lights come on left to right at dusk and go off
+  // right to left at dawn. The first night also waits for the buildings.
+  const WIN = S.wins.map((w, i) => {
+    const x = (parseFloat(w.getAttribute("x")) || 0) / 1920;
+    const jitter = ((i * 37) % 100) / 100;
+    return { th: 0.3 + 0.45 * x + 0.15 * jitter, gate: T.firstLight + x * 1100 + jitter * 250, lit: false };
+  });
+
+  function applySky(angle, t) {
+    const r = (angle * Math.PI) / 180;
+    const c = Math.cos(r);
+    const s = Math.sin(r);
+    const day = smooth(-0.05, 0.45, c);
+    const night = 1 - day;
+    SKY.day.setAttribute("opacity", day.toFixed(3));
+    SKY.dusk.setAttribute("opacity", (0.95 * clamp01(1 - Math.abs(c - 0.12) / 0.3)).toFixed(3));
+    SKY.stars.setAttribute("opacity", smooth(0.4, 1, night).toFixed(3));
+    SKY.wash.setAttribute("opacity", (0.6 * day).toFixed(3));
+    // Elliptical orbit, centred right of the middle to keep clear of the year.
+    SKY.sunPos.setAttribute("transform", `translate(${(1120 + 820 * s).toFixed(1)} ${(1000 - 680 * c).toFixed(1)})`);
+    SKY.moonPos.setAttribute("transform", `translate(${(1120 - 820 * s).toFixed(1)} ${(1000 + 680 * c).toFixed(1)})`);
+    WIN.forEach((w, i) => {
+      const lit = night > w.th && t >= w.gate;
+      if (lit === w.lit) return;
+      w.lit = lit;
+      S.wins[i].style.fill = lit ? LIT[i] : "";
     });
   }
 
-  function rollYears(from, toYear, startMs, stepMs) {
-    const steps = [];
-    const n = 10;
-    for (let i = 1; i <= n; i += 1) steps.push(Math.round(from + ((toYear - from) * i) / n));
-    steps.forEach((y, i) => at(startMs + i * stepMs, () => setYear(String(y), true)));
+  /* ---------------- Year odometer ---------------- */
+
+  const CELL = 176;
+  const odo = [];            // strips, thousands first
+  // Vertical-only blur per wheel, scaled by how fast it spins.
+  const blurSvg = document.createElementNS(SVGNS, "svg");
+  blurSvg.setAttribute("width", "0");
+  blurSvg.setAttribute("height", "0");
+  blurSvg.style.position = "absolute";
+  document.body.appendChild(blurSvg);
+  el.yearDigits.textContent = "";
+  for (let k = 0; k < 4; k += 1) {
+    const col = document.createElement("span");
+    col.className = "op-odo";
+    const strip = document.createElement("span");
+    strip.innerHTML = "0123456789".split("").concat("0").map((d) => `<b>${d}</b>`).join("");
+    col.appendChild(strip);
+    el.yearDigits.appendChild(col);
+    const filter = node("filter", { id: `opOdoBlur${k}`, x: "-5%", y: "-5%", width: "110%", height: "110%" }, blurSvg);
+    const blur = node("feGaussianBlur", { stdDeviation: "0 0" }, filter);
+    odo.push({ strip, blur, id: filter.id, pos: 0, blurred: false });
+  }
+
+  // Mechanical odometer: the units wheel turns continuously, every other
+  // wheel only moves while all the wheels below it roll over from 9 to 0.
+  function setYearValue(v, dt) {
+    for (let k = 0; k < 4; k += 1) {
+      const unit = Math.pow(10, k);
+      const below = v % unit;
+      const carry = k === 0 ? v % 10 - Math.floor(v % 10) : clamp01(below - (unit - 1));
+      const pos = (Math.floor(v / unit) % 10) + carry;
+      const wheel = odo[3 - k];
+      wheel.strip.style.transform = `translateY(${(-pos * CELL).toFixed(2)}px)`;
+      if (dt) {
+        let moved = pos - wheel.pos;
+        if (moved < -5) moved += 10;
+        const sd = Math.min(12, (Math.abs(moved) * CELL * 0.3 * 16.7) / dt);
+        if (sd > 0.4) {
+          wheel.blur.setAttribute("stdDeviation", `0 ${sd.toFixed(2)}`);
+          if (!wheel.blurred) wheel.strip.style.filter = `url(#${wheel.id})`;
+          wheel.blurred = true;
+        } else if (wheel.blurred) {
+          wheel.strip.style.filter = "";
+          wheel.blurred = false;
+        }
+      } else if (wheel.blurred) {
+        wheel.strip.style.filter = "";
+        wheel.blurred = false;
+      }
+      wheel.pos = pos;
+    }
+  }
+
+  // Trapezoid velocity (linear ramps), so the wheels speed up and brake.
+  function rollProgress(x, a = 0.15, b = 0.35) {
+    x = clamp01(x);
+    const area = 1 - a / 2 - b / 2;
+    if (x < a) return (x * x) / (2 * a) / area;
+    if (x <= 1 - b) return (a / 2 + (x - a)) / area;
+    return (area - ((1 - x) * (1 - x)) / (2 * b)) / area;
+  }
+
+  // One frame clock for everything continuous in the campus part.
+  function runClock(year) {
+    const tk = token;
+    const t0 = performance.now();
+    let last = t0;
+    function frame(now) {
+      if (tk !== token) return;
+      const t = now - t0;
+      const dt = Math.max(1, now - last);
+      last = now;
+      applySky(orbitAngle(t), t);
+      if (t >= T.roll0) setYearValue(1907 + (year - 1907) * rollProgress((t - T.roll0) / (T.roll1 - T.roll0)), dt);
+      if (t < T.dive + 1000) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   }
 
   /* ---------------- Poses ---------------- */
@@ -149,17 +287,19 @@
     el.ripples.forEach((r) => set(r, { transform: "scale(0.2)", opacity: "0" }));
     set(el.campus, { clipPath: "circle(0px at 960px 540px)", opacity: "1" });
     set(el.cam, { transform: "translateX(0px) scale(1)" });
-    S.sun.forEach((n) => set(n, { transform: "translateY(180px) rotate(-30deg)", opacity: "0" }));
+    S.sun.forEach((n) => set(n, { transform: "scale(0.3) rotate(-45deg)", opacity: "0" }));
     S.far.forEach((n) => set(n, { transform: "translateY(240px)" }));
     S.tiers.forEach((n) => set(n, { transform: "translateY(40px) scale(0.4)", opacity: "0" }));
     S.blds.forEach((n) => set(n, { transform: "translateY(520px)" }));
     S.flags.forEach((n) => set(n, { transform: "scaleY(0)" }));
     S.trees.forEach((n) => set(n, { transform: "scale(0)" }));
     S.stone.forEach((n) => set(n, { transform: "translateY(90px)", opacity: "0" }));
-    S.wins.forEach((n) => set(n, { fill: "" }));
+    WIN.forEach((w) => { w.lit = false; });
+    S.wins.forEach((n) => { n.style.fill = ""; });
+    applySky(ORBIT.a0, 0);
     set(el.stoneWord, { clipPath: "inset(0% 100% 0% 0%)" });
     set(el.year, { transform: "translateY(30px)", opacity: "0" });
-    setYear("1907", false);
+    setYearValue(1907);
     snap(el.yearLabel, "SINCE");
     set(el.yearRange, { opacity: "0" });
     el.deco.forEach((n) => set(n, { transform: "scale(0.6) rotate(-40deg)", opacity: "0" }));
@@ -220,54 +360,52 @@
     });
     at(950, () => to(el.seed, { transform: "scale(16) rotate(90deg)" }, { m: M.acc(360) }));
 
-    // 1.1 - campus iris opens
-    at(1100, () => {
-      to(el.campus, { clipPath: "circle(1150px at 960px 540px)" }, { m: M.dec(900) });
-      to(el.cam, { transform: "translateX(-40px) scale(1.04)" }, { m: lin(3400) });
+    // 1.1 - campus iris opens at sunset; the clock drives sky, sun, moon,
+    // window lights and the odometer from here on.
+    runClock(year);
+    at(T.open, () => {
+      to(el.campus, { clipPath: "circle(1150px at 960px 540px)" }, { m: M.dec(1100) });
+      to(el.cam, { transform: "translateX(-90px) scale(1.08)" }, { m: lin(T.dive - T.open) });
     });
     at(1600, () => set(el.seed, { opacity: "0" }));
-    at(1200, () => S.sun.forEach((n) => {
-      to(n, { transform: "translateY(0px) rotate(0deg)" }, { m: "ss" });
+    at(1250, () => S.sun.forEach((n) => {
+      to(n, { transform: "scale(1) rotate(0deg)" }, { m: "ss" });
       to(n, { opacity: "1" }, { m: "es" });
     }));
-    S.far.forEach((n, i) => at(1250 + i * 60, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
-    S.blds.forEach((n, i) => at(1300 + i * 110, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
-    S.tiers.forEach((n, i) => at(1450 + i * 55, () => {
+    S.far.forEach((n, i) => at(1300 + i * 120, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
+    S.blds.forEach((n, i) => at(1500 + i * 220, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
+    S.tiers.forEach((n, i) => at(1800 + i * 110, () => {
       to(n, { transform: "translateY(0px) scale(1)" }, { m: "sf" });
       to(n, { opacity: "1" }, { m: "ef" });
     }));
-    S.flags.forEach((n, i) => at(2000 + i * 40, () => to(n, { transform: "scaleY(1)" }, { m: "sf" })));
-    S.trees.forEach((n, i) => at(2050 + i * 70, () => to(n, { transform: "scale(1)" }, { m: "sf" })));
-    at(2250, () => S.stone.forEach((n) => {
+    S.flags.forEach((n, i) => at(2900 + i * 80, () => to(n, { transform: "scaleY(1)" }, { m: "sf" })));
+    S.trees.forEach((n, i) => at(3000 + i * 140, () => to(n, { transform: "scale(1)" }, { m: "sf" })));
+    at(3400, () => S.stone.forEach((n) => {
       to(n, { transform: "translateY(0px)" }, { m: "sd" });
       to(n, { opacity: "1" }, { m: "ed" });
     }));
-    at(2650, () => to(el.stoneWord, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(800) }));
-    at(2200, () => S.wins.forEach((w, i) => {
-      const x = parseFloat(w.getAttribute("x")) || 0;
-      to(w, { fill: LIT[i] }, { m: M.std(300), delay: (x / 1920) * 1000 + ((i * 37) % 180) });
-    }));
+    at(4200, () => to(el.stoneWord, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(1200) }));
 
-    // Year odometer
-    at(2400, () => {
+    // Year odometer rolls through the time-lapse
+    at(T.yearIn, () => {
       to(el.year, { transform: "translateY(0px)" }, { m: "sd" });
       to(el.year, { opacity: "1" }, { m: "ed" });
     });
-    rollYears(1907, year, 2900, 95);
-    at(2900 + 10 * 95 + 80, () => {
+    at(T.label, () => {
       swap(el.yearLabel, `建校 ${year - 1907} 年`);
       el.yearRange.textContent = `1907 — ${year}`;
       to(el.yearRange, { opacity: "1" }, { m: "es" });
+      pulse(el.yearDigits, [{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
     });
 
-    // 4.5 - dive in, close into the emblem disc
-    at(4450, () => {
+    // 10.3 - dive in, close into the emblem disc
+    at(10300, () => {
       to(el.year, { opacity: "0" }, { m: M.acc(220) });
       to(el.year, { transform: "translateY(-30px)" }, { m: M.acc(260) });
       to(el.cam, { transform: "translateX(0px) scale(1.35)" }, { m: M.inout(750) });
       to(el.campus, { clipPath: "circle(260px at 960px 540px)" }, { m: M.inout(750) });
     });
-    at(4950, () => {
+    at(10800, () => {
       set(el.emblem, { opacity: "1" });
       set(disc, { opacity: "0" });
       to(disc, { opacity: "1" }, { m: M.std(260) });
@@ -276,26 +414,26 @@
         to(n, { opacity: "1" }, { m: "es", delay: 120 + i * 70 });
       });
     });
-    at(5250, () => set(el.campus, { opacity: "0" }));
+    at(11100, () => set(el.campus, { opacity: "0" }));
 
-    // 5.2 - emblem build
-    at(5150, () => to(ring, { strokeDashoffset: "0" }, { m: M.dec(900) }));
-    [[teal, 5250], [navy, 5500]].forEach(([f, t0]) => {
+    // 11.0 - emblem build
+    at(11000, () => to(ring, { strokeDashoffset: "0" }, { m: M.dec(900) }));
+    [[teal, 11100], [navy, 11350]].forEach(([f, t0]) => {
       f.strokes.forEach((s, i) => at(t0 + i * 50, () => to(s, { strokeDashoffset: "0" }, { m: M.inout(650) })));
       at(t0 + 620, () => {
         to(f.fill, { opacity: "1" }, { m: M.std(380) });
         f.strokes.forEach((s) => to(s, { opacity: "0" }, { m: M.std(380), delay: 200 }));
       });
     });
-    letters.forEach((n, i) => at(5950 + i * 13, () => {
+    letters.forEach((n, i) => at(11800 + i * 13, () => {
       to(n, { transform: "scale(1)" }, { m: "sf" });
       to(n, { opacity: "1" }, { m: "ef" });
     }));
-    seal.forEach((n, i) => at(6550 + i * 30, () => {
+    seal.forEach((n, i) => at(12400 + i * 30, () => {
       to(n, { transform: "translateY(0px)" }, { m: "sd" });
       to(n, { opacity: "1" }, { m: "ed" });
     }));
-    at(6850, () => {
+    at(12700, () => {
       to(sheen, { transform: "rotate(20deg) translateX(900px)" }, { m: M.inout(800) });
       pulse(el.emblem, [{ transform: "scale(1)" }, { transform: "scale(1.05)" }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
       el.ripples.forEach((r, i) => {
@@ -308,23 +446,23 @@
       });
     });
 
-    // 7.4 - lockup
-    at(7400, () => {
+    // 13.3 - lockup
+    at(13250, () => {
       lockedUp = true;
       to(el.emblem, { transform: "translate(-400px, 0px) scale(0.72)" }, { m: "ss" });
     });
-    at(7600, () => to(el.word, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(900) }));
-    at(7900, () => {
+    at(13450, () => to(el.word, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(900) }));
+    at(13750, () => {
       to(el.en, { transform: "translateY(0px)" }, { m: "sd" });
       to(el.en, { opacity: "1" }, { m: "ed" });
     });
     if (hasTitle) {
-      at(8050, () => to(el.rule, { width: "420px" }, { m: "sd" }));
-      at(8200, () => {
+      at(13900, () => to(el.rule, { width: "420px" }, { m: "sd" }));
+      at(14050, () => {
         to(el.title, { transform: "translateY(0px)" }, { m: "ss" });
         to(el.title, { opacity: "1" }, { m: "es" });
       });
-      at(8350, () => {
+      at(14200, () => {
         to(el.sub, { transform: "translateY(0px)" }, { m: "ss" });
         to(el.sub, { opacity: "1" }, { m: "es" });
       });
@@ -332,8 +470,8 @@
 
     return new Promise((resolve) => {
       finish = resolve;
-      if (endMode === "reveal") at(10100, () => reveal().then(resolve));
-      else at(9700, resolve);
+      if (endMode === "reveal") at(15950, () => reveal().then(resolve));
+      else at(15550, resolve);
     });
   }
 
@@ -367,15 +505,6 @@
   }
 
   poseOff();
-
-  // Four digit slots for the odometer
-  el.yearDigits.textContent = "";
-  for (let i = 0; i < 4; i += 1) {
-    const s = document.createElement("span");
-    s.className = "cz-slot";
-    el.yearDigits.appendChild(s);
-  }
-  setYear("1907", false);
 
   window.CZ.graphic({
     family: "opener",
