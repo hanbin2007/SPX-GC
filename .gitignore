@@ -100,3 +100,6 @@ ASSETS/**
 !ASSETS/ExtraFunctions/modules
 !ASSETS/ExtraFunctions/spx_internal_demo_functions.js
 
+
+# Studio UI (studio-ui/) sources; its tsconfig is not a secret config file
+!studio-ui/tsconfig.json

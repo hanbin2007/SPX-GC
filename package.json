@@ -12,9 +12,11 @@
     ]
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test test/*.test.js",
+    "test:studio": "npm --prefix studio-ui test",
+    "build:studio": "npm --prefix studio-ui ci && npm --prefix studio-ui run build",
     "devORG": "nodemon server.js -i config.json -i DATAROOT/",
-    "dev": "SPX_BIND_HOST=127.0.0.1 nodemon --ignore 'DATAROOT/**' --ignore 'ASSETS/**' --ignore config.json --ignore 'DATAROOT_VIDEO/**' server.js",
+    "dev": "SPX_BIND_HOST=127.0.0.1 nodemon --ignore 'DATAROOT/**' --ignore 'ASSETS/**' --ignore config.json --ignore 'DATAROOT_VIDEO/**' --ignore 'studio-ui/**' --ignore 'static/studio/**' server.js",
     "devdemo": "nodemon server.js config_demodataroot.json -i DATAROOT_DEMO/* -i config_demodataroot.json",
     "dev2": "nodemon server.js config2.json -i DATAROOT/* -i config2.json",
     "start": "pm2 start server.js --name GC",
@@ -45,12 +47,10 @@
     "open": "^10.1.0",
     "openurl": "^1.1.1",
     "osc": "^2.4.5",
-    "papaparse": "^5.7.0",
     "path": "^0.12.7",
     "rotating-file-stream": "^3.2.5",
     "socket.io": "^4.8.0",
     "sox-play": "0.0.2",
-    "tabulator-tables": "^6.5.3",
     "winston": "^3.17.0"
   },
   "devDependencies": {
