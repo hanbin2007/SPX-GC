@@ -4,7 +4,7 @@
 (function () {
   "use strict";
 
-  const { to, set, pulse, shapePx, M, bus } = window.CZ;
+  const { to, set, shapePx, M, bus } = window.CZ;
   const $ = (id) => document.getElementById(id);
   const el = {
     st: document.querySelector(".st"),
@@ -19,7 +19,6 @@
     burst: $("burst"),
     orbit: $("orbit"),
     motes: $("motes"),
-    streaks: $("streaks"),
     deco: [...document.querySelectorAll(".st-deco > i")]
   };
 
@@ -47,22 +46,34 @@
     }
   })();
 
-  // Speed streaks shot out from the centre as the frame closes.
-  const STREAKS = Array.from({ length: 24 }, (_, i) => {
-    const n = document.createElement("i");
-    el.streaks.appendChild(n);
-    return { el: n, angle: i * 15 + ((i * 53) % 9) };
-  });
-
-  // Decoration flies in from outside and out again when the frame opens.
-  const DECO = el.deco.map((n) => {
-    const dx = n.offsetLeft + n.offsetWidth / 2 - 960;
-    const dy = n.offsetTop + n.offsetHeight / 2 - 540;
-    return {
-      from: `translate(${(dx * 0.6).toFixed(0)}px, ${(dy * 0.6).toFixed(0)}px) scale(0.3) rotate(-140deg)`,
-      out: `translate(${(dx * 0.45).toFixed(0)}px, ${(dy * 0.45).toFixed(0)}px) scale(1.35) rotate(60deg)`
-    };
-  });
+  // Distinct perimeter slots keep the centre clear; shuffle and jitter them
+  // on each take so the shapes do not repeat a rigid composition.
+  const SLOTS = [
+    [150, 120], [720, 55], [1510, 100], [70, 600],
+    [1680, 500], [360, 830], [1270, 870]
+  ];
+  const DECO = [];
+  function scatterDeco() {
+    const slots = [...SLOTS];
+    for (let i = slots.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slots[i], slots[j]] = [slots[j], slots[i]];
+    }
+    el.deco.forEach((n, i) => {
+      const [baseX, baseY] = slots[i];
+      const x = Math.min(1900 - n.offsetWidth, Math.max(20, baseX + (Math.random() - 0.5) * 130));
+      const y = Math.min(1060 - n.offsetHeight, Math.max(20, baseY + (Math.random() - 0.5) * 90));
+      n.style.left = `${Math.round(x)}px`;
+      n.style.top = `${Math.round(y)}px`;
+      const dx = x + n.offsetWidth / 2 - 960;
+      const dy = y + n.offsetHeight / 2 - 540;
+      DECO[i] = {
+        from: `translate(${(dx * 0.6).toFixed(0)}px, ${(dy * 0.6).toFixed(0)}px) scale(0.3) rotate(-140deg)`,
+        out: `translate(${(dx * 0.45).toFixed(0)}px, ${(dy * 0.45).toFixed(0)}px) scale(1.35) rotate(60deg)`
+      };
+      set(n, { transform: DECO[i].from, opacity: "0" });
+    });
+  }
   let bgAnim = null;
   let bgTimer = 0;
 
@@ -165,7 +176,6 @@
     set(el.burst, { opacity: "0" });
     set(el.orbit, { transform: "scale(0.6) rotate(-90deg)", opacity: "0" });
     el.deco.forEach((n, i) => set(n, { transform: DECO[i].from, opacity: "0" }));
-    STREAKS.forEach((k) => set(k.el, { opacity: "0" }));
     el.teal.style.clipPath = coverClip(0, 0);
     el.navy.style.clipPath = coverClip(0, 0);
     set(el.badge, { transform: "scale(0.2) rotate(-120deg)", opacity: "0" });
@@ -175,6 +185,7 @@
 
   function enter() {
     poseOff();
+    scatterDeco();
     covered = false;
     revealAt = Infinity;
     start = performance.now();
@@ -193,19 +204,11 @@
     to(el.burst, { opacity: "1" }, { m: M.std(600), delay: 250 });
     to(el.orbit, { transform: "scale(1) rotate(0deg)" }, { m: "ss", delay: 260 });
     to(el.orbit, { opacity: "1" }, { m: M.std(400), delay: 260 });
-    el.deco.forEach((n, i) => {
-      to(n, { transform: "translate(0px, 0px) scale(1) rotate(0deg)" }, { m: "sf", delay: 180 + i * 45 });
-      to(n, { opacity: "1" }, { m: "ef", delay: 180 + i * 45 });
+    el.deco.forEach((n) => {
+      const delay = 20 + Math.round(Math.random() * 90);
+      to(n, { transform: "translate(0px, 0px) scale(1) rotate(0deg)" }, { m: M.dec(900), delay });
+      to(n, { opacity: "1" }, { m: M.std(450), delay });
     });
-    // Streaks burst out of the centre just as the frame closes.
-    STREAKS.forEach((k, i) => [0, 1].forEach((rep) => {
-      const len = 1 + ((i * 7 + rep * 3) % 5) * 0.25;
-      pulse(k.el, [
-        { opacity: 0, transform: `rotate(${k.angle}deg) translateY(-160px) scaleY(0.2)` },
-        { opacity: 0.85, offset: 0.25 },
-        { opacity: 0, transform: `rotate(${k.angle}deg) translateY(-1150px) scaleY(${len.toFixed(2)})` }
-      ], { duration: 640, easing: "cubic-bezier(0.5, 0, 1, 1)", delay: 380 + rep * 260 + ((i * 97) % 200) });
-    }));
     to(el.badge, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 330 });
     to(el.badge, { opacity: "1" }, { m: "ef", delay: 330 });
     to(el.emblem, { transform: "scale(1)" }, { m: "sf", delay: 400 });
@@ -231,6 +234,7 @@
   // Centre badge follows the chosen logo group (published by the bug).
   const badgeLogo = window.CZ.followLogo({ art: el.emblem, fallback: "./img/emblem.png", live: () => raf !== 0 });
 
+  scatterDeco();
   poseOff();
 
   window.CZ.graphic({

@@ -1,7 +1,7 @@
 /* Stinger: teal and navy 12-sided cookies cover the frame, the emblem pops,
    then the cookies open as holes to reveal the new shot. The navy layer
    carries the opener's background (dark campus photo, light rays, halo,
-   orbit ring, motes, M3 shapes, speed streaks); every piece keeps moving. */
+   orbit ring, motes, M3 shapes); every piece keeps moving. */
 
 .st { position: absolute; inset: 0; }
 
@@ -120,42 +120,22 @@
   animation: st-mote linear infinite;
 }
 
-.st-deco > i { position: absolute; display: block; will-change: transform; }
+.st-deco > i { position: absolute; left: 0; top: 0; display: block; will-change: transform; }
 .st-deco > i > b { position: absolute; inset: 0; display: block; }
-.st-clover { left: 230px; top: 150px; width: 170px; height: 170px; }
+.st-clover { width: 170px; height: 170px; }
 .st-clover > b { background: var(--teal); clip-path: var(--shape-clover4); animation: st-spin 7s linear infinite; }
-.st-sun { left: 1540px; top: 740px; width: 130px; height: 130px; }
+.st-sun { width: 130px; height: 130px; }
 .st-sun > b { background: var(--teal-soft); clip-path: var(--shape-sunny8); animation: st-spin 9s linear infinite reverse; }
-.st-spark { left: 1480px; top: 190px; width: 66px; height: 66px; }
+.st-spark { width: 66px; height: 66px; }
 .st-spark > b { background: #ffffff; clip-path: var(--shape-spark4); animation: st-glint 1.4s ease-in-out infinite; }
-.st-dot { left: 330px; top: 790px; width: 56px; height: 56px; }
+.st-dot { width: 56px; height: 56px; }
 .st-dot > b { border-radius: 50%; background: var(--teal-soft); animation: st-bob 1.6s ease-in-out infinite alternate; }
-.st-ring { left: 1640px; top: 300px; width: 140px; height: 140px; }
+.st-ring { width: 140px; height: 140px; }
 .st-ring > b { border: 7px solid rgba(200, 241, 242, 0.55); border-radius: 50%; animation: st-bob 2s ease-in-out infinite alternate-reverse; }
-.st-pill { left: 110px; top: 500px; width: 240px; height: 80px; }
+.st-pill { width: 240px; height: 80px; }
 .st-pill > b { border-radius: 40px; background: #2a5694; animation: st-tilt 2.4s ease-in-out infinite alternate; }
-.st-cookie { left: 1190px; top: 870px; width: 84px; height: 84px; }
+.st-cookie { width: 84px; height: 84px; }
 .st-cookie > b { background: var(--teal); clip-path: var(--shape-cookie12); animation: st-spin 6s linear infinite; }
-
-.st-streaks {
-  position: absolute;
-  left: 960px;
-  top: 540px;
-  width: 0;
-  height: 0;
-}
-
-.st-streaks > i {
-  position: absolute;
-  left: -3px;
-  top: -80px;
-  display: block;
-  width: 6px;
-  height: 160px;
-  border-radius: 3px;
-  background: linear-gradient(rgba(200, 241, 242, 0), #c8f1f2);
-  opacity: 0;
-}
 
 @keyframes st-spin { to { transform: rotate(360deg); } }
 @keyframes st-bob { from { transform: translateY(-12px); } to { transform: translateY(12px); } }
