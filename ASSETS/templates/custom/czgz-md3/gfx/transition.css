@@ -1,7 +1,12 @@
 /* Stinger: teal and navy 12-sided cookies cover the frame, the emblem pops,
-   then the cookies open as holes to reveal the new shot. */
+   then the cookies open as holes to reveal the new shot. The navy layer
+   carries the opener's background (dark campus photo, light rays, halo,
+   orbit ring, motes, M3 shapes, speed streaks); every piece keeps moving. */
 
 .st { position: absolute; inset: 0; }
+
+/* Idle loops only run while the stinger plays. */
+.st:not(.is-live) * { animation-play-state: paused !important; }
 
 .st-layer {
   position: absolute;
@@ -33,4 +38,135 @@
   height: 62px;
   margin-top: 40px;
   color: #ffffff;
+}
+
+/* ---- Background ------------------------------------------------------- */
+.st-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  will-change: transform;
+}
+
+/* Dark monochrome campus photo along the bottom (sky already transparent). */
+.st-photo {
+  position: absolute;
+  left: -160px;
+  right: -160px;
+  bottom: -30px;
+  height: 820px;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.st-photo > b {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: url("../img/photo-campus-a.webp") center bottom / 100% auto no-repeat;
+}
+
+.st-halo {
+  position: absolute;
+  left: 310px;
+  top: -110px;
+  display: block;
+  width: 1300px;
+  height: 1300px;
+  background: #173c6e;
+  clip-path: var(--shape-cookie9);
+  opacity: 0.85;
+  will-change: transform;
+}
+
+.st-burst {
+  position: absolute;
+  left: 410px;
+  top: -10px;
+  width: 1100px;
+  height: 1100px;
+  background: url("../img/burst.webp") center / contain no-repeat;
+  will-change: transform;
+  animation: st-spin 24s linear infinite;
+}
+
+.st-orbit {
+  position: absolute;
+  left: 580px;
+  top: 160px;
+  width: 760px;
+  height: 760px;
+  overflow: visible;
+  will-change: transform;
+}
+
+.st-orbit circle {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: st-spin 12s linear infinite;
+  fill: none;
+  stroke: #c8f1f2;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 1 16;
+  opacity: 0.55;
+}
+
+.st-motes > i {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: st-mote linear infinite;
+}
+
+.st-deco > i { position: absolute; display: block; will-change: transform; }
+.st-deco > i > b { position: absolute; inset: 0; display: block; }
+.st-clover { left: 230px; top: 150px; width: 170px; height: 170px; }
+.st-clover > b { background: var(--teal); clip-path: var(--shape-clover4); animation: st-spin 7s linear infinite; }
+.st-sun { left: 1540px; top: 740px; width: 130px; height: 130px; }
+.st-sun > b { background: var(--teal-soft); clip-path: var(--shape-sunny8); animation: st-spin 9s linear infinite reverse; }
+.st-spark { left: 1480px; top: 190px; width: 66px; height: 66px; }
+.st-spark > b { background: #ffffff; clip-path: var(--shape-spark4); animation: st-glint 1.4s ease-in-out infinite; }
+.st-dot { left: 330px; top: 790px; width: 56px; height: 56px; }
+.st-dot > b { border-radius: 50%; background: var(--teal-soft); animation: st-bob 1.6s ease-in-out infinite alternate; }
+.st-ring { left: 1640px; top: 300px; width: 140px; height: 140px; }
+.st-ring > b { border: 7px solid rgba(200, 241, 242, 0.55); border-radius: 50%; animation: st-bob 2s ease-in-out infinite alternate-reverse; }
+.st-pill { left: 110px; top: 500px; width: 240px; height: 80px; }
+.st-pill > b { border-radius: 40px; background: #2a5694; animation: st-tilt 2.4s ease-in-out infinite alternate; }
+.st-cookie { left: 1190px; top: 870px; width: 84px; height: 84px; }
+.st-cookie > b { background: var(--teal); clip-path: var(--shape-cookie12); animation: st-spin 6s linear infinite; }
+
+.st-streaks {
+  position: absolute;
+  left: 960px;
+  top: 540px;
+  width: 0;
+  height: 0;
+}
+
+.st-streaks > i {
+  position: absolute;
+  left: -3px;
+  top: -80px;
+  display: block;
+  width: 6px;
+  height: 160px;
+  border-radius: 3px;
+  background: linear-gradient(rgba(200, 241, 242, 0), #c8f1f2);
+  opacity: 0;
+}
+
+@keyframes st-spin { to { transform: rotate(360deg); } }
+@keyframes st-bob { from { transform: translateY(-12px); } to { transform: translateY(12px); } }
+@keyframes st-tilt { from { transform: rotate(20deg) translateY(-8px); } to { transform: rotate(34deg) translateY(10px); } }
+@keyframes st-glint {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(0.55) rotate(45deg); }
+}
+@keyframes st-mote {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  15% { opacity: var(--o, 0.5); }
+  80% { opacity: var(--o, 0.5); }
+  100% { transform: translateY(-360px) rotate(240deg); opacity: 0; }
 }
