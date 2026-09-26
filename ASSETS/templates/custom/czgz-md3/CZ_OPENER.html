@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./gfx/opener.css">
   <script>
     window.SPXGCTemplateDefinition = {
-      description: "常高 M3 · 开场片头（约 16 秒：校园日夜延时 + 校徽演绎）",
+      description: "常高 M3 · 开场片头（约 20 秒：校园日夜延时 + 校徽演绎）",
       playserver: "-",
       playchannel: "1",
       playlayer: "50",
@@ -34,29 +34,69 @@
 </head>
 <body>
   <main class="stage" id="stage">
+    <!-- Trailing rims of the final reveal (under the cover). -->
+    <i class="op-rim op-rim--soft" id="rimSoft" aria-hidden="true"></i>
+    <i class="op-rim op-rim--teal" id="rimTeal" aria-hidden="true"></i>
     <section class="op" id="op" aria-label="开场片头">
+      <!-- Background: monochrome campus photos, drifting motes -->
+      <div class="op-bg" id="bg" aria-hidden="true">
+        <div class="op-photo" id="photo"><b></b></div>
+        <div class="op-motes" id="motes"></div>
+      </div>
       <div class="op-deco" aria-hidden="true">
-        <i class="op-halo"></i><i class="op-clover"></i><i class="op-sun8"></i><i class="op-dot"></i><i class="op-spark"></i>
+        <i class="op-halo"><b><u></u></b></i>
+        <i class="op-clover"><b></b></i>
+        <i class="op-sun8"><b></b></i>
+        <i class="op-dot"><b></b></i>
+        <i class="op-spark"><b></b></i>
+        <i class="op-ring"><b></b></i>
+        <i class="op-spark op-spark--sm"><b></b></i>
+        <i class="op-pill"><b></b></i>
+        <i class="op-cookie"><b></b></i>
       </div>
       <div class="op-ripples" aria-hidden="true"><i></i><i></i><i></i></div>
       <div class="op-rays" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="op-seed" id="seed"><i id="seedShape"></i></div>
+      <i class="op-iris" id="iris" aria-hidden="true"></i>
       <div class="op-campus" id="campus">
         <div class="op-cam" id="cam"><i class="cz-wordmark op-stone-word" id="stoneWord"></i></div>
         <div class="op-year" id="year">
-          <div class="cz-slot op-year__label" id="yearLabel"></div>
-          <div class="op-year__digits" id="yearDigits"></div>
-          <span class="op-year__range" id="yearRange"></span>
+          <div class="op-year__in">
+            <div class="cz-slot op-year__label" id="yearLabel"></div>
+            <div class="op-year__digits" id="yearDigits"></div>
+            <span class="op-year__range" id="yearRange"></span>
+          </div>
         </div>
       </div>
-      <div class="op-emblem" id="emblem"></div>
-      <div class="op-lockup" id="lockup">
-        <i class="cz-wordmark op-word" id="word"></i>
-        <div class="op-en" id="en">CHANGZHOU SENIOR HIGH SCHOOL OF JIANGSU PROVINCE</div>
-        <i class="op-rule" id="rule"></i>
-        <div class="cz-slot op-title" id="title"></div>
-        <div class="cz-slot op-sub" id="sub"></div>
+      <div class="op-warp" id="warp" aria-hidden="true"></div>
+      <i class="op-moon" id="moonDisc" aria-hidden="true"></i>
+      <div class="op-mark" id="mark">
+        <div class="op-burst" id="burst" aria-hidden="true"></div>
+        <div class="op-mark__float">
+          <div class="op-orbit" id="orbit" aria-hidden="true">
+            <svg class="op-orbit__dash" viewBox="-380 -380 760 760"><circle r="352"/></svg>
+            <svg class="op-orbit__line" viewBox="-380 -380 760 760"><circle id="orbitLine" r="300" pathLength="1" transform="rotate(-90)"/></svg>
+            <i class="op-arm op-arm--a"><b></b></i>
+            <i class="op-arm op-arm--b"><b></b></i>
+            <i class="op-arm op-arm--c"><b></b></i>
+          </div>
+          <div class="op-emblem" id="emblem"></div>
+        </div>
       </div>
+      <div class="op-lockup" id="lockup">
+        <div class="op-lockup__in">
+          <i class="cz-wordmark op-word" id="word"></i>
+          <div class="op-en" id="en">CHANGZHOU SENIOR HIGH SCHOOL OF JIANGSU PROVINCE</div>
+          <div class="op-rule" id="rule">
+            <svg viewBox="0 0 544 20" aria-hidden="true"><path id="wave"/></svg>
+          </div>
+          <div class="op-title" id="title"></div>
+          <div class="cz-slot op-sub" id="sub"></div>
+          <div class="op-chip" id="chip"><i class="cz-spark"></i><span id="chipText"></span></div>
+        </div>
+      </div>
+      <i class="op-sweep op-sweep--soft" id="sweepSoft" aria-hidden="true"></i>
+      <i class="op-sweep" id="sweep" aria-hidden="true"></i>
     </section>
   </main>
   <script src="./core/md3.js"></script>

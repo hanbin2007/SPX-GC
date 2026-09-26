@@ -1,15 +1,22 @@
-/* Opening title sequence, about 16 s.
-   0.0  M3 shape morph burst
-   1.1  campus drawn from the reference photos opens at sunset: buildings
-        rise, pagoda stacks up, trees pop, stone calligraphy reveals, windows
-        light up left to right as night falls
+/* Opening title sequence, about 20 s. Nothing on screen is ever at rest:
+   every element runs either a scripted move or an idle loop.
+   0.0  M3 shape morph burst over the monochrome campus photo
+   1.0  campus opens through a rotating cookie iris with a soft-teal rim, at
+        sunset: buildings rise, pagoda stacks up, trees pop and sway, flags
+        wave, clouds drift, windows light up left to right as night falls
    3.6  time-lapse: two full days and nights while the odometer rolls 1907
         to this year, settling on night with "建校 N 年"
-   10.3 camera dives in, the view closes into the emblem's white disc
-   11.0 emblem builds: ring draws, colour fields trace then fill, ring
-        letters pop in order, seal, sheen
-   13.3 lockup with the calligraphy name, English name, title
-   15.9 reveal the programme through an opening cookie (or hold) */
+   9.7  match-cut: the crescent waxes full, the camera warps into the moon
+        and the moon flies to the centre to become the emblem's disc
+   11.8 shockwave, decoration flies in; emblem builds: ring draws, colour
+        fields trace then fill, ring letters pop in order, seal, sheen;
+        orbit ring draws around it
+   14.1 lockup: the mark slides left, two bands sweep across and retract to
+        reveal the calligraphy name, English name, wavy rule, title (letter
+        by letter), subtitle and anniversary chip
+   18.4 layered reveal: the mark flies at the camera while a cookie hole with
+        teal and soft-teal rims opens onto the programme (or hold, still
+        alive) */
 (function () {
   "use strict";
 
@@ -19,8 +26,14 @@
 
   const el = {
     op: $("op"),
+    rimSoft: $("rimSoft"),
+    rimTeal: $("rimTeal"),
+    bg: $("bg"),
+    photo: $("photo"),
+    motes: $("motes"),
     seed: $("seed"),
     seedShape: $("seedShape"),
+    iris: $("iris"),
     rays: [...document.querySelectorAll(".op-rays > i")],
     ripples: [...document.querySelectorAll(".op-ripples > i")],
     campus: $("campus"),
@@ -30,14 +43,25 @@
     yearLabel: $("yearLabel"),
     yearDigits: $("yearDigits"),
     yearRange: $("yearRange"),
+    warp: $("warp"),
+    moonDisc: $("moonDisc"),
     deco: [...document.querySelectorAll(".op-deco > i")],
+    mark: $("mark"),
+    burst: $("burst"),
+    orbit: $("orbit"),
+    orbitLine: $("orbitLine"),
     emblem: $("emblem"),
     lockup: $("lockup"),
     word: $("word"),
     en: $("en"),
     rule: $("rule"),
+    wave: $("wave"),
     title: $("title"),
-    sub: $("sub")
+    sub: $("sub"),
+    chip: $("chip"),
+    chipText: $("chipText"),
+    sweep: $("sweep"),
+    sweepSoft: $("sweepSoft")
   };
 
   /* ---------------- Build the drawings ---------------- */
@@ -60,8 +84,11 @@
     dusk: scene.querySelector(".sky-dusk"),
     stars: scene.querySelector(".stars"),
     wash: scene.querySelector(".day-wash"),
+    clouds: scene.querySelector(".clouds"),
     sunPos: scene.querySelector(".sun-pos"),
-    moonPos: scene.querySelector(".moon-pos")
+    moonPos: scene.querySelector(".moon-pos"),
+    moon: scene.querySelector(".moon"),
+    moonCut: scene.querySelector("#opMoonCut circle:last-child")
   };
   // Lit window colours: mostly teal-soft, some warm.
   const LIT = S.wins.map((w, i) => ((i * 7) % 10 < 3 ? "#ffe3a3" : "#c8f1f2"));
@@ -103,6 +130,50 @@
   const sheen = node("rect", { x: "-260", y: "-160", width: "180", height: "800", fill: "url(#opSheen)" }, sheenG);
   el.emblem.appendChild(svg);
 
+  // Wavy rule: a sine long enough to scroll by one wavelength forever.
+  (function () {
+    const LAMBDA = 32, AMP = 5.5, pts = [];
+    for (let x = 0; x <= 544; x += 2) {
+      pts.push(`${x} ${(10 + AMP * Math.sin((x / LAMBDA) * Math.PI * 2)).toFixed(2)}`);
+    }
+    el.wave.setAttribute("d", `M${pts.join(" L")}`);
+  })();
+
+  // Motes: small M3 shapes rising through the background, always moving.
+  (function () {
+    let seed = 20260901;
+    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const kinds = ["circle", "spark4", "clover4", "cookie12", "sunny8", "circle"];
+    const colors = ["#c8f1f2", "#30b8bd", "#ffffff", "#57cfd3"];
+    for (let i = 0; i < 26; i += 1) {
+      const m = document.createElement("i");
+      const size = 8 + rnd() * 20;
+      m.style.left = `${(rnd() * 1920).toFixed(0)}px`;
+      m.style.top = `${(260 + rnd() * 900).toFixed(0)}px`;
+      m.style.width = m.style.height = `${size.toFixed(1)}px`;
+      m.style.background = colors[i % colors.length];
+      m.style.clipPath = `var(--shape-${kinds[i % kinds.length]})`;
+      m.style.setProperty("--o", (0.18 + rnd() * 0.42).toFixed(2));
+      m.style.animationDuration = `${(9 + rnd() * 10).toFixed(1)}s`;
+      m.style.animationDelay = `${(-rnd() * 19).toFixed(1)}s`;
+      el.motes.appendChild(m);
+    }
+  })();
+
+  // Decoration enters from outside, flying in towards its place.
+  const DECO_FROM = el.deco.map((n) => {
+    const cx = n.offsetLeft + n.offsetWidth / 2;
+    const cy = n.offsetTop + n.offsetHeight / 2;
+    return `translate(${((cx - 960) * 0.7).toFixed(0)}px, ${((cy - 540) * 0.7).toFixed(0)}px) scale(0.3) rotate(-150deg)`;
+  });
+
+  // Warp streaks for the moon match-cut.
+  const STREAKS = Array.from({ length: 30 }, (_, i) => {
+    const s = document.createElement("i");
+    el.warp.appendChild(s);
+    return { el: s, angle: i * 12 + ((i * 53) % 9) };
+  });
+
   /* ---------------- Timeline helpers ---------------- */
 
   let timers = [];
@@ -111,7 +182,8 @@
   let running = false;
   let endMode = "reveal";
   let hasTitle = true;
-  let lockedUp = false;       // emblem has moved to the lockup position
+  let lockedUp = false;       // the mark has moved to the lockup position
+  let titleChars = [];
 
   function at(ms, fn) {
     const t = token;
@@ -125,6 +197,9 @@
   }
 
   const lin = (duration) => ({ duration, easing: "linear" });
+  // Which layers are on screen: intro, open (iris), campus, warp, mark.
+  const act = (name) => { el.op.dataset.act = name; };
+  const HIDDEN = "polygon(0 0, 0 0, 0 0)";
 
   /* ---------------- Campus clock ---------------- */
 
@@ -133,7 +208,9 @@
   const T = {
     open: 1100, firstLight: 2500, yearIn: 3300,
     lapse: 3600, cruise: 4600, brake: 8400, stop: 9600,
-    roll0: 3800, roll1: 9400, label: 9550, dive: 10300
+    roll0: 3800, roll1: 9400, label: 9550, wax: 9700, yearOut: 10150,
+    warp: 10400, arrive: 11750, lockup: 14100, sweep: 14250,
+    hold: 18000, end: 18400
   };
   const ORBIT = { a0: 70, a1: 150, a2: 900 };   // sun angle from the zenith, clockwise
   const V0 = (ORBIT.a1 - ORBIT.a0) / (T.lapse - T.open);
@@ -171,7 +248,7 @@
     return { th: 0.3 + 0.45 * x + 0.15 * jitter, gate: T.firstLight + x * 1100 + jitter * 250, lit: false };
   });
 
-  function applySky(angle, t) {
+  function applySky(angle, t, wax = 0) {
     const r = (angle * Math.PI) / 180;
     const c = Math.cos(r);
     const s = Math.sin(r);
@@ -181,6 +258,9 @@
     SKY.dusk.setAttribute("opacity", (0.95 * clamp01(1 - Math.abs(c - 0.12) / 0.3)).toFixed(3));
     SKY.stars.setAttribute("opacity", smooth(0.4, 1, night).toFixed(3));
     SKY.wash.setAttribute("opacity", (0.6 * day).toFixed(3));
+    SKY.clouds.setAttribute("opacity", (0.16 + 0.5 * day).toFixed(3));
+    // Before the match-cut the crescent waxes into a full moon.
+    SKY.moonCut.setAttribute("cx", (34 + 190 * wax).toFixed(1));
     // Elliptical orbit, centred right of the middle to keep clear of the year.
     SKY.sunPos.setAttribute("transform", `translate(${(1120 + 820 * s).toFixed(1)} ${(1000 - 680 * c).toFixed(1)})`);
     SKY.moonPos.setAttribute("transform", `translate(${(1120 - 820 * s).toFixed(1)} ${(1000 + 680 * c).toFixed(1)})`);
@@ -264,9 +344,9 @@
       const t = now - t0;
       const dt = Math.max(1, now - last);
       last = now;
-      applySky(orbitAngle(t), t);
+      applySky(orbitAngle(t), t, smooth(T.wax, T.wax + 650, t));
       if (t >= T.roll0) setYearValue(1907 + (year - 1907) * rollProgress((t - T.roll0) / (T.roll1 - T.roll0)), dt);
-      if (t < T.dive + 1000) requestAnimationFrame(frame);
+      if (t < T.warp + 200) requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
   }
@@ -275,17 +355,32 @@
 
   const SEED_SHAPES = ["cookie12", "clover4", "sunny8", "cookie6", "circle"];
   const SEED_COLORS = ["#30b8bd", "#c8f1f2", "#ffffff", "#57cfd3", "#30b8bd"];
+  const SWEEP_IN = "inset(0% 100% 0% 0% round 240px)";
+  const SWEEP_FULL = "inset(0% 0% 0% 0% round 240px)";
+  const SWEEP_OUT = "inset(0% 0% 0% 100% round 240px)";
+
+  function poseTitle() {
+    titleChars.forEach((c) => set(c, { transform: "translateY(0.7em)", opacity: "0" }));
+  }
 
   function poseOff() {
     clearTimeline();
     running = false;
     lockedUp = false;
-    el.op.style.clipPath = "polygon(0 0, 0 0, 0 0)";
+    el.op.classList.remove("is-live");
+    act("intro");
+    el.op.style.clipPath = HIDDEN;
+    el.rimSoft.style.clipPath = HIDDEN;
+    el.rimTeal.style.clipPath = HIDDEN;
+    set(el.photo, { opacity: "0" });
+    set(el.motes, { opacity: "0" });
     set(el.seed, { transform: "scale(0) rotate(-90deg)", opacity: "1" });
     set(el.seedShape, { clipPath: shape("circle"), backgroundColor: "#30b8bd" });
     el.rays.forEach((r, i) => set(r, { transform: `rotate(${i * 45}deg) translateY(0px) scaleY(0.2)`, opacity: "0" }));
     el.ripples.forEach((r) => set(r, { transform: "scale(0.2)", opacity: "0" }));
-    set(el.campus, { clipPath: "circle(0px at 960px 540px)", opacity: "1" });
+    set(el.iris, { clipPath: HIDDEN });
+    set(el.campus, { clipPath: HIDDEN, transform: "translate(0px, 0px) scale(1)", opacity: "1" });
+    el.campus.style.transformOrigin = "";
     set(el.cam, { transform: "translateX(0px) scale(1)" });
     S.sun.forEach((n) => set(n, { transform: "scale(0.3) rotate(-45deg)", opacity: "0" }));
     S.far.forEach((n) => set(n, { transform: "translateY(240px)" }));
@@ -296,14 +391,21 @@
     S.stone.forEach((n) => set(n, { transform: "translateY(90px)", opacity: "0" }));
     WIN.forEach((w) => { w.lit = false; });
     S.wins.forEach((n) => { n.style.fill = ""; });
-    applySky(ORBIT.a0, 0);
+    SKY.moonPos.setAttribute("opacity", "1");
+    applySky(ORBIT.a0, 0, 0);
     set(el.stoneWord, { clipPath: "inset(0% 100% 0% 0%)" });
     set(el.year, { transform: "translateY(30px)", opacity: "0" });
     setYearValue(1907);
     snap(el.yearLabel, "SINCE");
     set(el.yearRange, { opacity: "0" });
-    el.deco.forEach((n) => set(n, { transform: "scale(0.6) rotate(-40deg)", opacity: "0" }));
-    set(el.emblem, { transform: "translate(0px, 0px) scale(1)", opacity: "0" });
+    set(el.warp, { transform: "translate(0px, 0px)" });
+    STREAKS.forEach((s) => set(s.el, { opacity: "0" }));
+    set(el.moonDisc, { transform: "translate(0px, 0px) scale(1)", opacity: "0", backgroundColor: "#eef6ff" });
+    el.deco.forEach((n, i) => set(n, { transform: DECO_FROM[i], opacity: "0" }));
+    set(el.mark, { transform: "translate(0px, 0px) scale(1)", opacity: "0" });
+    set(el.burst, { opacity: "0", transform: "scale(0.6)" });
+    set(el.orbit, { opacity: "0", transform: "scale(0.8)" });
+    set(el.orbitLine, { strokeDashoffset: "1" });
     set(disc, { opacity: "1" });
     for (const f of [teal, navy]) {
       set(f.fill, { opacity: "0" });
@@ -313,11 +415,23 @@
     letters.forEach((n) => set(n, { transform: "scale(0.2)", opacity: "0" }));
     seal.forEach((n) => set(n, { transform: "translateY(12px)", opacity: "0" }));
     set(sheen, { transform: "rotate(20deg) translateX(0px)" });
+    set(el.lockup, { transform: "translateY(0px)", opacity: "1" });
     set(el.word, { clipPath: "inset(0% 100% 0% 0%)" });
     set(el.en, { transform: "translateY(18px)", opacity: "0" });
     set(el.rule, { width: "0px" });
-    set(el.title, { transform: "translateY(40px)", opacity: "0" });
+    poseTitle();
     set(el.sub, { transform: "translateY(30px)", opacity: "0" });
+    set(el.chip, { transform: "scale(0.6)", opacity: "0" });
+    set(el.sweep, { clipPath: SWEEP_IN });
+    set(el.sweepSoft, { clipPath: SWEEP_IN });
+  }
+
+  // Expanding cookie (optionally a hole) as keyframes; the lobes slide as it grows.
+  function cookieFrames(r0, r1, rot, opts = {}) {
+    return Array.from({ length: 9 }, (_, i) => {
+      const p = i / 8;
+      return { clipPath: shapePx("cookie12", opts.cx || 960, opts.cy || 540, Math.max(0.5, r0 + (r1 - r0) * p), { rot: rot * p, hole: opts.hole }) };
+    });
   }
 
   /* ---------------- The sequence ---------------- */
@@ -325,14 +439,17 @@
   function play() {
     poseOff();
     running = true;
+    el.op.classList.add("is-live");
     const year = new Date().getFullYear();
 
-    // 0.0 - cover grows, seed morphs through M3 shapes
+    // 0.0 - cover grows over the monochrome campus photo; the seed morphs
     const cover = el.op.animate([
       { clipPath: shapePx("cookie12", 960, 540, 1, { rot: -60 }) },
       { clipPath: shapePx("cookie12", 960, 540, 1200, { rot: 0 }) }
     ], { duration: 700, easing: M.dec().easing, fill: "forwards" });
     cover.finished.then(() => { if (running) { el.op.style.clipPath = "none"; cover.cancel(); } }, () => {});
+    to(el.photo, { opacity: "0.3" }, { m: M.std(900) });
+    to(el.motes, { opacity: "1" }, { m: M.std(900) });
 
     to(el.seed, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 80 });
     SEED_SHAPES.forEach((s, i) => at(260 + i * 150, () => {
@@ -358,16 +475,28 @@
       });
       at(620 + i * 160, () => to(r, { opacity: "0" }, { m: M.std(600) }));
     });
-    at(950, () => to(el.seed, { transform: "scale(16) rotate(90deg)" }, { m: M.acc(360) }));
+    at(900, () => to(el.seed, { transform: "scale(16) rotate(90deg)" }, { m: M.acc(360) }));
 
-    // 1.1 - campus iris opens at sunset; the clock drives sky, sun, moon,
-    // window lights and the odometer from here on.
-    runClock(year);
+    // 1.0 - rotating cookie iris with a soft-teal rim running just ahead
+    const irisTiming = { duration: 1150, easing: M.dec().easing, fill: "forwards" };
+    at(T.open - 150, () => act("open"));
+    at(T.open - 110, () => el.iris.animate(cookieFrames(0, 1260, 70), irisTiming));
     at(T.open, () => {
-      to(el.campus, { clipPath: "circle(1150px at 960px 540px)" }, { m: M.dec(1100) });
-      to(el.cam, { transform: "translateX(-90px) scale(1.08)" }, { m: lin(T.dive - T.open) });
+      const a = el.campus.animate(cookieFrames(0, 1260, 70), irisTiming);
+      a.finished.then(() => {
+        if (!running) return;
+        el.campus.style.clipPath = "none";
+        a.cancel();
+        el.iris.getAnimations().forEach((x) => x.cancel());
+        el.iris.style.clipPath = HIDDEN;
+        set(el.seed, { opacity: "0" });
+        act("campus");
+      }, () => {});
+      to(el.cam, { transform: "translateX(-90px) scale(1.08)" }, { m: lin(T.warp - T.open) });
     });
-    at(1600, () => set(el.seed, { opacity: "0" }));
+
+    // Campus: the clock drives sky, sun, moon, window lights and the odometer.
+    runClock(year);
     at(1250, () => S.sun.forEach((n) => {
       to(n, { transform: "scale(1) rotate(0deg)" }, { m: "ss" });
       to(n, { opacity: "1" }, { m: "es" });
@@ -397,85 +526,145 @@
       to(el.yearRange, { opacity: "1" }, { m: "es" });
       pulse(el.yearDigits, [{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], { duration: 420, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
     });
-
-    // 10.3 - dive in, close into the emblem disc
-    at(10300, () => {
-      to(el.year, { opacity: "0" }, { m: M.acc(220) });
-      to(el.year, { transform: "translateY(-30px)" }, { m: M.acc(260) });
-      to(el.cam, { transform: "translateX(0px) scale(1.35)" }, { m: M.inout(750) });
-      to(el.campus, { clipPath: "circle(260px at 960px 540px)" }, { m: M.inout(750) });
+    at(T.yearOut, () => {
+      to(el.year, { opacity: "0" }, { m: M.acc(300) });
+      to(el.year, { transform: "translateY(-40px)" }, { m: M.acc(360) });
     });
-    at(10800, () => {
-      set(el.emblem, { opacity: "1" });
-      set(disc, { opacity: "0" });
-      to(disc, { opacity: "1" }, { m: M.std(260) });
-      el.deco.forEach((n, i) => {
-        to(n, { transform: "scale(1) rotate(0deg)" }, { m: "sg", delay: 120 + i * 70 });
-        to(n, { opacity: "1" }, { m: "es", delay: 120 + i * 70 });
+
+    // 10.4 - match-cut: warp into the full moon, the moon becomes the emblem disc
+    at(T.warp, () => { act("warp"); warp(); });
+
+    // 11.75 - arrival: shockwave, decoration flies in, emblem builds
+    at(T.arrive, () => {
+      act("mark");
+      set(el.mark, { opacity: "1" });
+      to(el.burst, { opacity: "1" }, { m: M.std(1000) });
+      to(el.burst, { transform: "scale(1)" }, { m: "ss" });
+      to(el.moonDisc, { opacity: "0" }, { m: M.std(260), delay: 60 });
+      pulse(el.mark, [{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 700, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
+      el.ripples.forEach((r, i) => {
+        set(r, { transform: "scale(1.7)", opacity: "0" });
+        at(i * 140, () => {
+          to(r, { opacity: "0.85" }, { m: "ef" });
+          to(r, { transform: "scale(4.6)" }, { m: M.dec(1200) });
+        });
+        at(320 + i * 140, () => to(r, { opacity: "0" }, { m: M.std(800) }));
       });
+      el.deco.forEach((n, i) => {
+        to(n, { transform: "translate(0px, 0px) scale(1) rotate(0deg)" }, { m: "sg", delay: 60 + i * 55 });
+        to(n, { opacity: "1" }, { m: "es", delay: 60 + i * 55 });
+      });
+      to(el.orbit, { opacity: "1" }, { m: M.std(600), delay: 250 });
+      to(el.orbit, { transform: "scale(1)" }, { m: "ss", delay: 250 });
+      to(el.orbitLine, { strokeDashoffset: "0" }, { m: M.inout(1500), delay: 350 });
     });
-    at(11100, () => set(el.campus, { opacity: "0" }));
-
-    // 11.0 - emblem build
-    at(11000, () => to(ring, { strokeDashoffset: "0" }, { m: M.dec(900) }));
-    [[teal, 11100], [navy, 11350]].forEach(([f, t0]) => {
+    const B = T.arrive;
+    at(B, () => to(ring, { strokeDashoffset: "0" }, { m: M.dec(900) }));
+    [[teal, B + 100], [navy, B + 350]].forEach(([f, t0]) => {
       f.strokes.forEach((s, i) => at(t0 + i * 50, () => to(s, { strokeDashoffset: "0" }, { m: M.inout(650) })));
       at(t0 + 620, () => {
         to(f.fill, { opacity: "1" }, { m: M.std(380) });
         f.strokes.forEach((s) => to(s, { opacity: "0" }, { m: M.std(380), delay: 200 }));
       });
     });
-    letters.forEach((n, i) => at(11800 + i * 13, () => {
+    letters.forEach((n, i) => at(B + 800 + i * 13, () => {
       to(n, { transform: "scale(1)" }, { m: "sf" });
       to(n, { opacity: "1" }, { m: "ef" });
     }));
-    seal.forEach((n, i) => at(12400 + i * 30, () => {
+    seal.forEach((n, i) => at(B + 1400 + i * 30, () => {
       to(n, { transform: "translateY(0px)" }, { m: "sd" });
       to(n, { opacity: "1" }, { m: "ed" });
     }));
-    at(12700, () => {
-      to(sheen, { transform: "rotate(20deg) translateX(900px)" }, { m: M.inout(800) });
+    at(B + 1700, () => {
+      sheenLoop();
       pulse(el.emblem, [{ transform: "scale(1)" }, { transform: "scale(1.05)" }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
-      el.ripples.forEach((r, i) => {
-        set(r, { transform: "scale(1.7)", opacity: "0" });
-        at(i * 150, () => {
-          to(r, { opacity: "0.8" }, { m: "ef" });
-          to(r, { transform: "scale(3.6)" }, { m: M.dec(1000) });
-        });
-        at(300 + i * 150, () => to(r, { opacity: "0" }, { m: M.std(700) }));
-      });
     });
 
-    // 13.3 - lockup
-    at(13250, () => {
+    // 14.1 - lockup: the mark slides left, bands sweep across and retract
+    at(T.lockup, () => {
       lockedUp = true;
-      to(el.emblem, { transform: "translate(-400px, 0px) scale(0.72)" }, { m: "ss" });
+      to(el.mark, { transform: "translate(-400px, 0px) scale(0.72)" }, { m: "ss" });
     });
-    at(13450, () => to(el.word, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(900) }));
-    at(13750, () => {
+    const W = T.sweep;
+    at(W - 80, () => to(el.sweepSoft, { clipPath: SWEEP_FULL }, { m: M.dec(560) }));
+    at(W, () => to(el.sweep, { clipPath: SWEEP_FULL }, { m: M.dec(520) }));
+    at(W + 480, () => to(el.sweep, { clipPath: SWEEP_OUT }, { m: M.inout(640) }));
+    at(W + 590, () => to(el.sweepSoft, { clipPath: SWEEP_OUT }, { m: M.inout(660) }));
+    // Text moves into place under the bands and is uncovered as they retract.
+    at(W + 520, () => to(el.word, { clipPath: "inset(0% 0% 0% 0%)" }, { m: M.dec(900) }));
+    at(W + 600, () => {
       to(el.en, { transform: "translateY(0px)" }, { m: "sd" });
       to(el.en, { opacity: "1" }, { m: "ed" });
     });
-    if (hasTitle) {
-      at(13900, () => to(el.rule, { width: "420px" }, { m: "sd" }));
-      at(14050, () => {
-        to(el.title, { transform: "translateY(0px)" }, { m: "ss" });
-        to(el.title, { opacity: "1" }, { m: "es" });
-      });
-      at(14200, () => {
-        to(el.sub, { transform: "translateY(0px)" }, { m: "ss" });
-        to(el.sub, { opacity: "1" }, { m: "es" });
-      });
-    }
+    at(W + 700, () => to(el.rule, { width: "480px" }, { m: M.dec(900) }));
+    titleChars.forEach((c, i) => at(W + 680 + i * 38, () => {
+      to(c, { transform: "translateY(0em)" }, { m: "sf" });
+      to(c, { opacity: "1" }, { m: "ef" });
+    }));
+    at(W + 980, () => {
+      to(el.sub, { transform: "translateY(0px)" }, { m: "ss" });
+      to(el.sub, { opacity: "1" }, { m: "es" });
+    });
+    at(W + 1180, () => {
+      to(el.chip, { transform: "scale(1)" }, { m: "sf" });
+      to(el.chip, { opacity: "1" }, { m: "ef" });
+    });
 
     return new Promise((resolve) => {
       finish = resolve;
-      if (endMode === "reveal") at(15950, () => reveal().then(resolve));
-      else at(15550, resolve);
+      if (endMode === "reveal") at(T.end, () => reveal().then(resolve));
+      else at(T.hold, resolve);
     });
   }
 
-  /* Opening cookie hole from the emblem: shows the programme underneath. */
+  function sheenLoop() {
+    set(sheen, { transform: "rotate(20deg) translateX(0px)" });
+    to(sheen, { transform: "rotate(20deg) translateX(900px)" }, { m: M.inout(900) });
+    at(4200, sheenLoop);
+  }
+
+  /* Match-cut: the moon (full by now) becomes the emblem's white disc. The
+     campus rushes past towards the camera, centred on the moon. */
+  function warp() {
+    const box = el.op.getBoundingClientRect();
+    const k = box.width / 1920 || 1;
+    const mb = SKY.moon.getBoundingClientRect();
+    const mx = (mb.left + mb.width / 2 - box.left) / k;
+    const my = (mb.top + mb.height / 2 - box.top) / k;
+    const r = mb.width / 2 / k || 86;
+    const glide = { duration: 1350, easing: "cubic-bezier(0.65, 0, 0.25, 1)" };
+
+    SKY.moonPos.setAttribute("opacity", "0");
+    set(el.moonDisc, { transform: `translate(${(mx - 960).toFixed(1)}px, ${(my - 540).toFixed(1)}px) scale(${(r / 260).toFixed(4)})`, opacity: "1" });
+    to(el.moonDisc, { transform: "translate(0px, 0px) scale(1)" }, { m: glide });
+    to(el.moonDisc, { backgroundColor: "#ffffff" }, { m: M.std(900) });
+
+    el.campus.style.transformOrigin = `${mx.toFixed(1)}px ${my.toFixed(1)}px`;
+    to(el.campus, { transform: `translate(${(960 - mx).toFixed(1)}px, ${(540 - my).toFixed(1)}px) scale(2.9)` }, { m: { duration: 1350, easing: "cubic-bezier(0.55, 0, 0.3, 1)" } });
+    to(el.campus, { opacity: "0" }, { m: M.std(700), delay: 480 });
+
+    // Streaks shoot out of the moon and travel with it.
+    set(el.warp, { transform: `translate(${(mx - 960).toFixed(1)}px, ${(my - 540).toFixed(1)}px)` });
+    to(el.warp, { transform: "translate(0px, 0px)" }, { m: glide });
+    STREAKS.forEach((s, i) => {
+      for (let rep = 0; rep < 3; rep += 1) {
+        at(rep * 330 + ((i * 97) % 260), () => {
+          const len = 1 + ((i * 7 + rep * 3) % 5) * 0.25;
+          pulse(s.el, [
+            { opacity: 0, transform: `rotate(${s.angle}deg) translateY(-${Math.round(r + 30)}px) scaleY(0.2)` },
+            { opacity: 0.9, offset: 0.25 },
+            { opacity: 0, transform: `rotate(${s.angle}deg) translateY(-1100px) scaleY(${len.toFixed(2)})` }
+          ], { duration: 720, easing: "cubic-bezier(0.5, 0, 1, 1)" });
+        });
+      }
+    });
+
+    // The background returns behind it.
+    to(el.photo, { opacity: "0.34" }, { m: M.std(900), delay: 500 });
+  }
+
+  /* Layered reveal: the cover opens a cookie hole from the mark while teal and
+     soft-teal rims trail inside it; the mark flies at the camera. */
   let revealing = null;
   function reveal() {
     if (revealing) return revealing;
@@ -483,18 +672,32 @@
     bus.announce("opener", false);
     const cx = lockedUp ? 560 : 960;
     const a = M.acc;
-    [el.lockup, el.emblem, el.year, ...el.deco].forEach((n, i) => to(n, { opacity: "0" }, { m: a(260), delay: i * 20 }));
+    to(el.lockup, { opacity: "0" }, { m: a(300) });
+    to(el.lockup, { transform: "translateY(-36px)" }, { m: a(380) });
+    to(el.mark, { transform: lockedUp ? "translate(-400px, 0px) scale(1.25)" : "translate(0px, 0px) scale(1.6)" }, { m: a(620) });
+    to(el.mark, { opacity: "0" }, { m: a(420), delay: 160 });
+    [el.year, el.moonDisc, el.sweep, el.sweepSoft, ...el.deco].forEach((n, i) => to(n, { opacity: "0" }, { m: a(260), delay: i * 18 }));
     const ease = M.inout().fn;
+    const LAGS = [0, 0.07, 0.13];
+    const layers = [el.op, el.rimTeal, el.rimSoft];
     revealing = new Promise((resolve) => {
       const t0 = performance.now();
-      const dur = 760;
+      const dur = 1050;
       function frame(now) {
-        const p = Math.min(1, (now - t0 - 120) / dur);
-        if (p > 0) el.op.style.clipPath = shapePx("cookie12", cx, 540, 1400 * ease(p), { rot: 40 * p, hole: true });
+        const p = (now - t0 - 100) / dur;
+        layers.forEach((layer, i) => {
+          const q = Math.min(1, Math.max(0, (p - LAGS[i]) / (1 - LAGS[2])));
+          if (i > 0 && p <= LAGS[i] - 0.001 && p > 0) {
+            layer.style.clipPath = "none";      // rim fills the frame under the cover until its own hole starts
+            return;
+          }
+          if (q > 0) layer.style.clipPath = shapePx("cookie12", cx, 540, 1750 * ease(q), { rot: 50 * q, hole: true });
+        });
         if (p < 1) requestAnimationFrame(frame);
         else {
-          el.op.style.clipPath = "polygon(0 0, 0 0, 0 0)";
-          running = false;
+          layers.forEach((layer) => { layer.style.clipPath = HIDDEN; });
+          el.op.classList.remove("is-live");
+                running = false;
           revealing = null;
           resolve();
         }
@@ -509,14 +712,31 @@
   window.CZ.graphic({
     family: "opener",
     defaults: { f0: "2026年秋季学期开学典礼", f1: "2026年9月1日 · 学校体育馆", f2: "reveal" },
-    preload: ["./img/wordmark-cn.png"],
+    preload: ["./img/wordmark-cn.png", "./img/photo-campus-a.webp", "./img/photo-campus-b.webp"],
     render(raw) {
       endMode = raw.f2 === "hold" ? "hold" : "reveal";
       hasTitle = !!(raw.f0 || raw.f1);
       el.lockup.classList.toggle("no-title", !hasTitle);
-      window.CZ.fit(snap(el.title, raw.f0 || ""), 1000, 60, 40);
+      // Title, split into letters that rise one after another.
+      el.title.textContent = "";
+      const span = document.createElement("span");
+      span.textContent = raw.f0 || "";
+      el.title.appendChild(span);
+      window.CZ.fit(span, 1000, 60, 40);
+      const text = span.textContent;
+      span.textContent = "";
+      titleChars = [...text].map((ch) => {
+        const c = document.createElement("span");
+        c.className = "op-ch";
+        c.textContent = ch;
+        span.appendChild(c);
+        return c;
+      });
+      if (!running) poseTitle();
       el.title.style.display = raw.f0 ? "" : "none";
       window.CZ.fit(snap(el.sub, raw.f1 || ""), 1000, 32, 24);
+      const year = new Date().getFullYear();
+      el.chipText.textContent = `建校 ${year - 1907} 年 · 1907—${year}`;
     },
     enter: play,
     exit() {
