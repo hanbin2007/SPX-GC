@@ -491,11 +491,11 @@
 
   const LOGO_GROUPS = ["1", "2", "3", "4"];
 
-  /* Operator value -> "1".."4" or "school" ("group" from older rundowns = "1"). */
+  /* Stable numeric group IDs; older "group" values still fall back to 1. */
   function logoGroup(value) {
     const v = String(value || "").trim();
     if (v === "school") return "school";
-    return LOGO_GROUPS.includes(v) ? v : "1";
+    return /^[1-9][0-9]{0,63}$/.test(v) ? v : "1";
   }
 
   /**
@@ -651,7 +651,7 @@
       const clean = {};
       for (const [k, v] of Object.entries(incoming)) {
         if (k === "comment" || k === "epochID") continue;
-        clean[k] = decode(v);
+        clean[k] = k === "fLogoLibrary" ? String(v ?? "") : decode(v);
       }
       g.raw = { ...g.raw, ...clean };
       await fonts(Object.values(g.raw).join(""));

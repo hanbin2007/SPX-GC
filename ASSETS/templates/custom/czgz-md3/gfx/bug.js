@@ -1,7 +1,6 @@
-/* Corner bug: logo library + live status + clock.
-   The bug item holds the logo library: the built-in school identity plus up
-   to six logos from ./logos/, each with its own name, style, scale, dwell
-   time and logo groups (1-4). Every group runs its own carousel here and is
+/* Corner bug: project logo library + live status + clock.
+   The built-in school identity and project logos each have their own group
+   membership. Every group runs its own carousel here and is
    published on the bus ({type: "grouplogo", group}); each graphic picks the
    group its logo follows, so all graphics in a group switch together. The
    bug itself is one such member (its badge + name plate, or a white plate
@@ -45,8 +44,9 @@
 
   let model = { mode: "live", event: "", clock: true, name: true, bugGroup: "1" };
   let school = { key: "school", kind: "school", sig: "school", secs: 0, scale: 1 };
-  const groups = {};          // "1".."4" -> { list, idx, auto, interval, timer, published }
-  for (const g of LOGO_GROUPS) groups[g] = { list: [school], idx: 0, auto: true, interval: 8, timer: null, published: null };
+  const groups = {};          // group id -> { list, idx, auto, interval, timer, published }
+  let groupIds = [...LOGO_GROUPS];
+  for (const g of groupIds) groups[g] = { list: [school], idx: 0, auto: true, interval: 8, timer: null, published: null };
   let shown = null;           // entry currently drawn in the badge / plate
   let W = { badge: BADGE, plate: PLATE_PAD + WORDMARK_W, event: 0, live: 0, clock: 0, light: false };
   let visible = false;
@@ -118,19 +118,48 @@
     return SLOTS.map((n) => slotConfig(raw, n)).filter(Boolean);
   }
 
+  function libraryOf(raw) {
+    if (raw.fLogoLibrary) {
+      try {
+        const library = JSON.parse(raw.fLogoLibrary);
+        if (library && Array.isArray(library.groups) && library.groups.length && Array.isArray(library.logos)) {
+          return library;
+        }
+      } catch (error) { console.error("CZ: invalid project logo library", error); }
+    }
+    return {
+      groups: LOGO_GROUPS.map((id, index) => ({
+        id, mode: raw[`f${70 + index * 2}`] === "manual" ? "manual" : "auto",
+        interval: secsOf(raw[`f${71 + index * 2}`]) || 8
+      })),
+      school: { groups: groupsOf(raw.f4), dwell: raw.f5 || "" },
+      logos: requested(raw).map((entry, index) => ({
+        id: `legacy-${index}`, src: entry.src, label: entry.label,
+        style: entry.style, scale: entry.scale, dwell: entry.secs || "", groups: entry.groups
+      }))
+    };
+  }
+
   /* One list per group; logos that fail to load are left out and an empty
      group falls back to the school identity. */
-  function buildLogos(raw) {
-    school = { key: "school", kind: "school", sig: "school", secs: secsOf(raw.f5), scale: 1, groups: groupsOf(raw.f4) };
+  function buildLogos(library) {
+    school = { key: "school", kind: "school", sig: "school", secs: secsOf(library.school?.dwell), scale: 1, groups: library.school?.groups || [] };
     const list = [school];
-    for (const entry of requested(raw)) {
+    for (const logo of library.logos) {
+      if (!logo.src) continue;
+      const entry = {
+        key: logo.id, kind: "image", src: logo.src,
+        label: logo.label === "-" ? "" : logo.label || nameFrom(logo.src),
+        style: logo.style || "auto", scale: Number(logo.scale) || 1,
+        secs: secsOf(logo.dwell), groups: logo.groups || []
+      };
       const size = cache.get(entry.src);
       if (!size) continue;
       const wide = entry.style === "plate" || (entry.style === "auto" && size.w / size.h > WIDE);
       list.push({ ...entry, w: size.w, h: size.h, wide, sig: [entry.key, entry.label, wide, entry.scale].join("|") });
     }
     const lists = {};
-    for (const g of LOGO_GROUPS) {
+    for (const g of library.groups.map((group) => group.id)) {
       const members = list.filter((e) => e.groups.includes(g));
       lists[g] = members.length ? members : [school];
     }
@@ -269,13 +298,14 @@
   function bugEntry() {
     if (model.bugGroup === "school") return school;
     const grp = groups[model.bugGroup];
-    return grp.list[grp.idx] || school;
+    return grp?.list[grp.idx] || school;
   }
 
   /* ---------------- Logo groups ---------------- */
 
   function publish(g, force) {
     const grp = groups[g];
+    if (!grp) return;
     const entry = grp.list[grp.idx] || school;
     if (entry.sig === grp.published && !force) return;
     grp.published = entry.sig;
@@ -288,6 +318,7 @@
 
   function scheduleGroup(g) {
     const grp = groups[g];
+    if (!grp) return;
     clearTimeout(grp.timer);
     grp.timer = null;
     if (!grp.auto || grp.list.length < 2) return;
@@ -305,7 +336,7 @@
 
   // A graphic that just loaded asks who is around: tell it every group logo.
   bus.on((msg) => {
-    if (msg.type === "hello") for (const g of LOGO_GROUPS) publish(g, true);
+    if (msg.type === "hello") for (const g of groupIds) publish(g, true);
   });
 
   /* ---------------- Render ---------------- */
@@ -322,18 +353,27 @@
     const live = opts.animate && visible;
 
     // Group carousels: keep showing the current logo if it is still listed.
-    const lists = buildLogos(raw);
-    LOGO_GROUPS.forEach((g, i) => {
-      const grp = groups[g];
+    const library = libraryOf(raw);
+    const lists = buildLogos(library);
+    const nextIds = library.groups.map((group) => group.id);
+    for (const g of groupIds) if (!nextIds.includes(g)) {
+      clearTimeout(groups[g].timer);
+      bus.post({ type: "grouplogo", group: g, logo: { key: "school", kind: "school" } });
+      delete groups[g];
+    }
+    groupIds = nextIds;
+    for (const group of library.groups) {
+      const g = group.id;
+      const grp = groups[g] ||= { list: [school], idx: 0, auto: true, interval: 8, timer: null, published: null };
       const cur = grp.list[grp.idx];
       const keep = cur ? lists[g].findIndex((e) => e.key === cur.key) : -1;
       grp.list = lists[g];
       grp.idx = keep >= 0 ? keep : 0;
-      grp.auto = raw[`f7${i * 2}`] !== "manual";
-      grp.interval = secsOf(raw[`f7${i * 2 + 1}`]) || 8;
+      grp.auto = group.mode !== "manual";
+      grp.interval = secsOf(group.interval) || 8;
       publish(g);
       scheduleGroup(g);
-    });
+    }
     const entry = bugEntry();
     const redraw = !shown || shown.sig !== entry.sig || prev.name !== model.name;
 
@@ -484,7 +524,7 @@
     defaults: { f0: "live", f1: "", f2: "1", f3: "1", f4: "", f5: "", f6: "1", f70: "auto", f71: "8", f72: "auto", f73: "8", f74: "auto", f75: "8", f76: "auto", f77: "8" },
     preload: ["./img/emblem-mark.png"],
     prepare(raw) {
-      return Promise.all(requested(raw).filter((e) => e.kind === "image").map((e) => measureImage(e.src)));
+      return Promise.all(libraryOf(raw).logos.filter((logo) => logo.src).map((logo) => measureImage(logo.src)));
     },
     render,
     enter() {
@@ -500,15 +540,17 @@
     },
     snapshot() {
       const state = {};
-      for (const g of LOGO_GROUPS) state[g] = { list: groups[g].list, idx: groups[g].idx, auto: groups[g].auto, interval: groups[g].interval };
-      return { model, school, groups: state, rot };
+      for (const g of groupIds) state[g] = { list: groups[g].list, idx: groups[g].idx, auto: groups[g].auto, interval: groups[g].interval };
+      return { model, school, groupIds, groups: state, rot };
     },
     restore(s) {
       if (s.model) model = s.model;
       if (s.school) school = s.school;
-      for (const g of LOGO_GROUPS) {
+      groupIds = s.groupIds || Object.keys(s.groups || {});
+      for (const g of groupIds) {
         const saved = s.groups && s.groups[g];
         if (!saved || !saved.list || !saved.list.length) continue;
+        groups[g] ||= { list: [school], idx: 0, auto: true, interval: 8, timer: null, published: null };
         Object.assign(groups[g], { list: saved.list, idx: Math.min(saved.idx || 0, saved.list.length - 1), auto: saved.auto, interval: saved.interval });
         for (const e of saved.list) if (e.kind === "image") cache.set(e.src, { w: e.w, h: e.h });
         publish(g, true);

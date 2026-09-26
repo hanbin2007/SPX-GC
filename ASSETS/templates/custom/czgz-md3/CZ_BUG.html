@@ -30,18 +30,9 @@
         { field: "f1", ftype: "textfield", title: "活动名称（可留空）", value: "" },
         { field: "f2", ftype: "checkbox", title: "显示时钟", value: "1" },
         { field: "f3", ftype: "checkbox", title: "显示名称（校名书法 / 标志文件名）", value: "1" },
-        {
-          field: "f6", ftype: "dropdown", title: "角标标志组", value: "1",
-          items: [
-            { text: "1 组", value: "1" },
-            { text: "2 组", value: "2" },
-            { text: "3 组", value: "3" },
-            { text: "4 组", value: "4" },
-            { text: "固定学校标志", value: "school" }
-          ]
-        },
-        { ftype: "divider", title: "标志库" },
-        { ftype: "instruction", value: "每个图文元素（角标、议程卡、人名条、标题条、全屏卡、转场）各自选择一个标志组，同组的元素显示同一个标志、一起切换。下面给每个标志指定所属组（可填多个，如 1 3）；组里有多个标志时按该组设置轮播，组里没有标志时显示学校标志。标志文件放进本模板的 logos 文件夹，刷新 SPX 后即可选择。" },
+        { field: "f6", ftype: "textfield", title: "角标标志组编号（school = 学校标志）", value: "1" },
+        { ftype: "divider", title: "旧标志库（经典兼容）" },
+        { ftype: "instruction", value: "项目标志组请在 Studio 顶部统一管理。下面的旧字段只在项目尚未保存标志组配置时生效。" },
         { field: "f4", ftype: "textfield", title: "学校标志所属组（如 1 3，留空=不参与轮播）", value: "" },
         { field: "f5", ftype: "textfield", title: "学校标志停留秒数（留空=组默认间隔）", value: "" },
         { ftype: "divider", title: "标志 1" },

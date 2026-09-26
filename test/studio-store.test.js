@@ -147,6 +147,19 @@ test('a bug item cannot own datasource mapping for the project logo library', (t
   assert.equal(result.item.DataFields.find((f) => f.field === 'f10').value, './logos/sczlogo.svg');
 });
 
+test('packaging group selection stays manual even with an old datasource mapping', (t) => {
+  const item = {
+    relpath: '/custom/czgz-md3/CZ_AGENDA.html', webplayout: '1',
+    DataFields: [{ field: 'f4', title: '标志组', value: '1' }]
+  };
+  const sources = { sources: [{ id: 'source', columns: [{ key: 'groups', title: 'Groups' }],
+    rows: [{ groups: '10' }] }] };
+  assert.equal(studio.resolveItem(item, {
+    sourceId: 'source', mode: 'row', rowIndex: 0,
+    manualValues: { f4: '3' }, fieldColumns: { f4: 'groups' }
+  }, sources).f4, '3');
+});
+
 test('project logo library is shared by rundowns and only group membership comes from data', (t) => {
   const root = fixture(t);
   const first = path.join(root, 'SCZ', 'data', '1.json');
@@ -166,27 +179,48 @@ test('project logo library is shared by rundowns and only group membership comes
   }));
   fs.writeFileSync(path.join(root, 'SCZ', 'data', '3.json'), JSON.stringify({ templates: [] }));
   const initial = studio.readState('SCZ', '1', root).logoLibrary;
-  assert.equal(initial.values.f10, './logos/old.png');
-  assert.equal(studio.readState('SCZ', '3', root).logoLibrary.values.f10, './logos/old.png');
+  assert.equal(initial.version, 2);
+  assert.equal(initial.logos[0].src, './logos/old.png');
+  assert.equal(studio.readState('SCZ', '3', root).logoLibrary.logos[0].src, './logos/old.png');
   const sources = studio.saveSource('SCZ', '1', {
     name: 'Groups', columns: [{ key: 'groups', title: 'Groups' }], rows: [{ groups: '2 4' }]
   }, 0, null, root);
   assert.throws(() => studio.saveLogoLibrary('SCZ', '1', {
-    ...initial, values: { ...initial.values, f10: './logos/new.png', f11: 'New' },
-    sourceId: sources.sources[0].id, fieldColumns: { f15: 'groups', f10: 'groups' }
+    ...initial, sourceId: sources.sources[0].id, groupColumns: { 'legacy-1': 'groups', f10: 'groups' }
   }, 0, root), (error) => error.status === 400);
   const next = studio.saveLogoLibrary('SCZ', '1', {
-    ...initial, values: { ...initial.values, f10: './logos/new.png', f11: 'New' },
-    sourceId: sources.sources[0].id, fieldColumns: { f15: 'groups' }
+    ...initial, logos: [{ ...initial.logos[0], src: './logos/new.png', label: 'New' }],
+    sourceId: sources.sources[0].id, groupColumns: { 'legacy-1': 'groups' }
   }, 0, root);
   assert.equal(next.revision, 1);
-  assert.equal(next.fieldColumns.f10, '');
+  assert.equal(next.groupColumns['legacy-1'], 'groups');
   assert.throws(() => studio.saveLogoLibrary('SCZ', '2', next, 0, root),
     (error) => error.status === 409);
-  assert.equal(studio.readState('SCZ', '2', root).logoLibrary.values.f10, './logos/new.png');
-  assert.equal(studio.readState('SCZ', '3', root).logoLibrary.values.f10, './logos/new.png');
+  assert.equal(studio.readState('SCZ', '2', root).logoLibrary.logos[0].src, './logos/new.png');
+  assert.equal(studio.readState('SCZ', '3', root).logoLibrary.logos[0].src, './logos/new.png');
   const played = studio.applyItemForPlayout('SCZ', '2', 'other-bug', root).item;
-  assert.equal(played.DataFields.find((field) => field.field === 'f10').value, './logos/new.png');
-  assert.equal(played.DataFields.find((field) => field.field === 'f15').value, '2 4');
+  const payload = studio.runtimeLogoLibraryFromFile(path.join(root, 'SCZ', 'data', '2.json'));
+  assert.equal(payload.logos[0].src, './logos/new.png');
+  assert.deepEqual(payload.logos[0].groups, ['2', '4']);
   assert.equal(played.DataFields.find((field) => field.field === 'f0').value, 'live');
+  const expanded = studio.saveLogoLibrary('SCZ', '1', {
+    ...next,
+    groups: [...next.groups, ...['5', '6', '7', '8', '9', '10'].map((id) => ({
+      id, name: `${id} 组`, mode: 'auto', interval: 8
+    }))],
+    logos: [...next.logos, ...Array.from({ length: 7 }, (_, index) => ({
+      id: `extra-${index}`, src: `./logos/extra-${index}.png`, label: `Extra ${index}`,
+      style: 'auto', scale: 1, dwell: '', groups: ['10']
+    }))]
+  }, 1, root);
+  assert.equal(expanded.groups.length, 10);
+  assert.equal(expanded.logos.length, 8);
+  const many = studio.runtimeLogoLibraryFromFile(path.join(root, 'SCZ', 'data', '2.json'));
+  assert.deepEqual(many.logos.at(-1).groups, ['10']);
+  studio.saveSource('SCZ', '1', {
+    ...sources.sources[0], rows: [{ ...sources.sources[0].rows[0], groups: '10' }]
+  }, sources.revision, sources.sources[0].id, root);
+  const exact = studio.runtimeLogoLibraryFromFile(path.join(root, 'SCZ', 'data', '2.json'));
+  assert.deepEqual(exact.logos[0].groups, ['10']);
+  assert.deepEqual(exact.logos.at(-1).groups, ['10']);
 });

@@ -17,9 +17,16 @@ const BUG_LIBRARY_FIELDS = [
   ...[1, 2, 3, 4, 5, 6].flatMap((n) => [`f${n}0`, `f${n}1`, `f${n}2`, `f${n}3`, `f${n}4`, `f${n}5`]),
   'f70', 'f71', 'f72', 'f73', 'f74', 'f75', 'f76', 'f77'
 ];
+const LOGO_ID = /^[a-zA-Z0-9_-]{1,64}$/;
+const GROUP_ID = /^[1-9][0-9]{0,63}$/;
 
 function isLogoLibrary(item) {
   return /(?:^|\/)custom\/czgz-md3\/CZ_BUG\.html$/i.test(String(item.relpath || ''));
+}
+
+function groupFollowerField(item) {
+  if (isLogoLibrary(item) || !/custom\/czgz-md3\//i.test(String(item.relpath || ''))) return null;
+  return (item.DataFields || []).find((field) => field.field && String(field.title || '').startsWith('标志组'))?.field || null;
 }
 
 function safePart(value) {
@@ -79,7 +86,7 @@ function readState(project, rundown, dataroot) {
 }
 
 function readLogoLibraryFrom(files, items, sources, bindings) {
-  if (fs.existsSync(files.logoLibraryFile)) return readJSON(files.logoLibraryFile, null);
+  if (fs.existsSync(files.logoLibraryFile)) return migrateLogoLibrary(readJSON(files.logoLibraryFile, null));
   let bug = items.find(isLogoLibrary);
   if (!bug) {
     for (const name of fs.readdirSync(path.dirname(files.rundownFile)).filter((entry) => entry.endsWith('.json'))) {
@@ -107,10 +114,41 @@ function readLogoLibraryFrom(files, items, sources, bindings) {
       : String(resolved[field] ?? original[field] ?? '');
   }
   const hasMapping = [...BUG_GROUP_FIELDS].some((field) => fieldColumns[field]);
-  return {
+  return migrateLogoLibrary({
     version: 1, revision: 0, values, fieldColumns,
     sourceId: hasMapping ? String(binding?.sourceId || '') : '',
     rowIndex: hasMapping ? Number(binding?.rowIndex || 0) : 0
+  });
+}
+
+function migrateLogoLibrary(library) {
+  if (!library || library.version === 2) return library;
+  const values = library.values || {};
+  const legacyGroups = ['1', '2', '3', '4'];
+  const membership = (value) => legacyGroups.filter((id) => String(value || '').includes(id));
+  const groups = legacyGroups.map((id, index) => ({
+    id, name: `${id} 组`, mode: values[`f${70 + index * 2}`] === 'manual' ? 'manual' : 'auto',
+    interval: Math.max(3, Number(values[`f${71 + index * 2}`]) || 8)
+  }));
+  const logos = [];
+  const groupColumns = { school: String(library.fieldColumns?.f4 || '') };
+  for (let n = 1; n <= 6; n += 1) {
+    const src = String(values[`f${n}0`] || '').trim();
+    if (!src || src === '-' || src === 'none') continue;
+    const id = `legacy-${n}`;
+    logos.push({
+      id, src, label: String(values[`f${n}1`] || ''), style: String(values[`f${n}2`] || 'auto'),
+      scale: Number(values[`f${n}3`]) || 1, dwell: String(values[`f${n}4`] || ''),
+      groups: membership(values[`f${n}5`])
+    });
+    groupColumns[id] = String(library.fieldColumns?.[`f${n}5`] || '');
+  }
+  return {
+    version: 2, revision: Number(library.revision) || 0,
+    groups, logos,
+    school: { groups: membership(values.f4), dwell: String(values.f5 || '') },
+    sourceId: String(library.sourceId || ''), rowIndex: Number(library.rowIndex) || 0,
+    groupColumns
   };
 }
 
@@ -122,41 +160,101 @@ function saveLogoLibrary(project, rundown, input, expectedRevision, dataroot) {
   const current = readLogoLibraryFrom(files, data.templates, sources, bindings);
   if (!current) throw new StudioError(404, 'Logo library not found');
   expectRevision(current, expectedRevision);
-  if (!input || typeof input !== 'object') throw new StudioError(400, 'Invalid logo library');
+  if (!input || input.version !== 2 || !Array.isArray(input.groups) || !input.groups.length ||
+      !Array.isArray(input.logos) || !input.school || typeof input.school !== 'object') {
+    throw new StudioError(400, 'Invalid logo library');
+  }
+  const groupIds = new Set();
+  const groups = input.groups.map((group) => {
+    const id = String(group.id || '');
+    const name = String(group.name || '').trim();
+    const interval = Number(group.interval);
+    if (!GROUP_ID.test(id) || groupIds.has(id) || !name || name.length > 80 ||
+        !['auto', 'manual'].includes(group.mode) || !Number.isFinite(interval) || interval < 3 || interval > 3600) {
+      throw new StudioError(400, 'Invalid or duplicate logo group');
+    }
+    groupIds.add(id);
+    return { id, name, mode: group.mode, interval };
+  });
+  const cleanGroups = (value) => {
+    if (!Array.isArray(value) || value.some((id) => !groupIds.has(String(id)))) {
+      throw new StudioError(400, 'Logo belongs to an unavailable group');
+    }
+    return [...new Set(value.map(String))];
+  };
+  const cleanDwell = (value) => {
+    if (value === '' || value == null) return '';
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 3 || n > 3600) throw new StudioError(400, 'Invalid logo dwell time');
+    return String(n);
+  };
+  const ids = new Set();
+  const logos = input.logos.map((logo) => {
+    const id = String(logo.id || '');
+    const src = String(logo.src || '').trim();
+    const label = String(logo.label || '');
+    const scale = Number(logo.scale);
+    if (!LOGO_ID.test(id) || ids.has(id) || src.length > 1000 || label.length > 100 ||
+        !['auto', 'badge', 'plate'].includes(logo.style) || !Number.isFinite(scale) || scale < 0.2 || scale > 3) {
+      throw new StudioError(400, 'Invalid or duplicate logo');
+    }
+    ids.add(id);
+    return { id, src, label, style: logo.style, scale, dwell: cleanDwell(logo.dwell), groups: cleanGroups(logo.groups) };
+  });
+  const school = { groups: cleanGroups(input.school.groups), dwell: cleanDwell(input.school.dwell) };
   const sourceId = String(input.sourceId || '');
   const source = sourceId ? sources.sources.find((entry) => entry.id === sourceId) : null;
   if (sourceId && !source) throw new StudioError(400, 'Datasource is unavailable');
   const columnKeys = new Set(source?.columns.map((column) => column.key) || []);
-  if (Object.entries(input.fieldColumns || {}).some(([field, column]) => column && !BUG_GROUP_FIELDS.has(field))) {
+  if (Object.entries(input.groupColumns || {}).some(([id, column]) => column && id !== 'school' && !ids.has(id))) {
     throw new StudioError(400, 'Only logo group membership may use a datasource');
   }
-  const values = {};
-  const fieldColumns = {};
-  for (const field of BUG_LIBRARY_FIELDS) {
-    const value = String(input.values?.[field] ?? '');
-    if (value.length > 10000) throw new StudioError(400, 'Logo value is too long');
-    values[field] = value;
-    const column = BUG_GROUP_FIELDS.has(field) ? String(input.fieldColumns?.[field] || '') : '';
+  const groupColumns = {};
+  for (const id of ['school', ...ids]) {
+    const column = String(input.groupColumns?.[id] || '');
     if (column && !columnKeys.has(column)) throw new StudioError(400, 'Mapped group column is unavailable');
-    fieldColumns[field] = column;
+    groupColumns[id] = column;
+  }
+  if (Object.values(groupColumns).some(Boolean) && !source?.rows.length) {
+    throw new StudioError(400, 'Logo group datasource has no rows');
   }
   const rowIndex = Math.min(Math.max(0, (source?.rows.length || 1) - 1),
     Math.max(0, Number.parseInt(input.rowIndex, 10) || 0));
-  const next = { version: 1, revision: current.revision + 1, values, sourceId, rowIndex, fieldColumns };
+  const next = { version: 2, revision: current.revision + 1, groups, logos, school, sourceId, rowIndex, groupColumns };
+  if (Buffer.byteLength(JSON.stringify(next)) > 2_000_000) throw new StudioError(400, 'Logo library exceeds 2 MB');
   writeJSON(files.logoLibraryFile, next);
   return next;
 }
 
 function resolveLogoLibrary(library, sources) {
-  const values = { ...library.values };
+  const resolved = structuredClone(migrateLogoLibrary(library));
   const source = sources.sources.find((entry) => entry.id === library.sourceId);
-  if (!source) return values;
+  if (!source) return resolved;
   const row = source.rows[library.rowIndex] || {};
-  for (const field of BUG_GROUP_FIELDS) {
-    const column = library.fieldColumns[field];
-    if (column) values[field] = String(row[column] ?? '');
+  const names = new Map(resolved.groups.flatMap((group) => [[group.id, group.id], [group.name, group.id]]));
+  const fromCell = (column) => [...new Set(String(row[column] ?? '').split(/[,，;；\n]+/).flatMap((part) => {
+    const whole = part.trim();
+    return names.has(whole) ? [names.get(whole)] : whole.split(/\s+/).map((token) => names.get(token)).filter(Boolean);
+  }))];
+  if (resolved.groupColumns.school) resolved.school.groups = fromCell(resolved.groupColumns.school);
+  for (const logo of resolved.logos) {
+    const column = resolved.groupColumns[logo.id];
+    if (column) logo.groups = fromCell(column);
   }
-  return values;
+  return resolved;
+}
+
+function runtimeLogoLibraryFromFile(rundownFile) {
+  const projectDir = path.dirname(path.dirname(path.resolve(rundownFile)));
+  const file = path.join(projectDir, '.studio', 'logo-library.json');
+  if (!fs.existsSync(file)) return null;
+  const library = migrateLogoLibrary(readJSON(file, null));
+  const sources = readJSON(path.join(projectDir, '.studio', 'datasources.json'), { sources: [] });
+  if (Object.values(library.groupColumns || {}).some(Boolean) &&
+      !sources.sources.find((entry) => entry.id === library.sourceId)?.rows.length) {
+    throw new StudioError(400, 'Logo group datasource has no rows');
+  }
+  return resolveLogoLibrary(library, sources);
 }
 
 function expectRevision(current, expected) {
@@ -233,7 +331,8 @@ function archiveSource(project, rundown, sourceId, archived, expectedRevision, d
 
 function cleanBinding(input, item, sources) {
   if (!input || typeof input !== 'object') throw new StudioError(400, 'Invalid item configuration');
-  const validFields = new Set((item.DataFields || []).filter((field) => FIELD_ID.test(field.field || '')).map((field) => field.field));
+  const validFields = new Set((item.DataFields || []).filter((field) =>
+    field.ftype !== 'hidden' && FIELD_ID.test(field.field || '')).map((field) => field.field));
   const sourceId = String(input.sourceId || '');
   if (sourceId && isLogoLibrary(item)) {
     throw new StudioError(400, 'Configure logo group datasource in the project logo library');
@@ -246,7 +345,7 @@ function cleanBinding(input, item, sources) {
   for (const field of validFields) {
     const column = String(input.fieldColumns?.[field] || '');
     if (column && !columnKeys.has(column)) throw new StudioError(400, 'Mapped column is unavailable');
-    if (column && isLogoLibrary(item)) {
+    if (column && (isLogoLibrary(item) || field === groupFollowerField(item))) {
       throw new StudioError(400, 'Configure logo group datasource in the project logo library');
     }
     fieldColumns[field] = column;
@@ -306,7 +405,7 @@ function resolveItem(item, binding, sources) {
   if (!source) return values;
   const firstRow = source.rows[binding.mode === 'range' ? binding.rangeStart - 1 : binding.rowIndex] || {};
   for (const [field, column] of Object.entries(binding.fieldColumns || {})) {
-    if (column) values[field] = String(firstRow[column] ?? '');
+    if (column && field !== groupFollowerField(item)) values[field] = String(firstRow[column] ?? '');
   }
   if (binding.mode === 'range' && binding.rangeField && binding.rangeTextColumn) {
     values[binding.rangeField] = source.rows.slice(binding.rangeStart - 1, binding.rangeEnd).map((row) => {
@@ -332,14 +431,6 @@ function applyItemForPlayout(project, rundown, itemId, dataroot) {
     throw new StudioError(400, 'Datasource has no rows');
   }
   const values = resolveItem(item, binding, sources);
-  if (isLogoLibrary(item) && fs.existsSync(files.logoLibraryFile)) {
-    const logoLibrary = readJSON(files.logoLibraryFile, null);
-    const usesSource = [...BUG_GROUP_FIELDS].some((field) => logoLibrary.fieldColumns?.[field]);
-    if (usesSource && !sources.sources.find((entry) => entry.id === logoLibrary.sourceId)?.rows.length) {
-      throw new StudioError(400, 'Logo group datasource has no rows');
-    }
-    Object.assign(values, resolveLogoLibrary(logoLibrary, sources));
-  }
   if (binding?.mode === 'range' && binding.rangeField && !values[binding.rangeField]) {
     throw new StudioError(400, 'Selected range has no content');
   }
@@ -361,5 +452,6 @@ function applyItemForPlayout(project, rundown, itemId, dataroot) {
 
 module.exports = {
   StudioError, paths, readState, saveSource, archiveSource, isLogoLibrary,
-  saveBinding, resolveItem, applyItemForPlayout, saveLogoLibrary, resolveLogoLibrary
+  saveBinding, resolveItem, applyItemForPlayout, saveLogoLibrary, resolveLogoLibrary,
+  migrateLogoLibrary, runtimeLogoLibraryFromFile
 };

@@ -21,6 +21,7 @@ const cors = require('cors');
 const { timeStamp } = require("console");
 const http = require('http');
 const axios = require('axios');
+const studioStore = require('../utils/studio_store.js');
 
 // ROOT ROUTES ----------------------------------------------------------------------------------------------
 
@@ -1307,6 +1308,7 @@ async function handlePlayout(req, res) {
 	let templateIndex = -1; // was 0 
 	try {
 		let dataOut = {}; // new object
+		let projectLogoField = null;
 		if (req.body.command == 'customAction') {
 			dataOut.spxcmd = 'customAction'
 			dataOut.id = req.body.id
@@ -1406,6 +1408,14 @@ async function handlePlayout(req, res) {
 					dataOut.fields.push(FieldItem);
 				}
 			});
+			if (studioStore.isLogoLibrary(ItemData)) {
+				const library = studioStore.runtimeLogoLibraryFromFile(RundownFile);
+				if (library) {
+					projectLogoField = { field: 'fLogoLibrary', value: JSON.stringify(library) };
+					dataOut.fields = dataOut.fields.filter((field) => field.field !== 'fLogoLibrary');
+					dataOut.fields.push(projectLogoField);
+				}
+			}
 			dataOut.fields.push({ 'field': 'epochID', 'value': itemID });
 		} // else (ie read from JSON)
 
@@ -1599,7 +1609,11 @@ async function handlePlayout(req, res) {
 				if (dataOut.webplayout != '-') {
 					logger.verbose('Webplayout UPDATE: ' + dataOut.webplayout);
 					dataOut.spxcmd = 'updateTemplate';
-					dataOut.fields = req.body.fields;
+					if (Array.isArray(req.body.fields)) dataOut.fields = req.body.fields;
+					if (projectLogoField) {
+						dataOut.fields = dataOut.fields.filter((field) => field.field !== 'fLogoLibrary');
+						dataOut.fields.push(projectLogoField);
+					}
 					PlayoutWEB.webPlayoutController(dataOut);
 				} else {
 					logger.verbose('No Webplayout playout');
