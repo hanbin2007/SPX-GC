@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  NEWSLINE · NAME 人名条                             SPX web layer 4
+  Scene slot "lower" (exclusive with HEADLINE). Lifts above TICKER, steps
+  aside for FULLSCREEN. Playing the next NAME item on the same layer
+  switches names in place instead of re-entering. See README.md.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Newsline · 人名条</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <link rel="stylesheet" href="./_scene/lower.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "Newsline 人名条 NAME",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "14",
+      webplayout: "4",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "4",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "姓名", value: "李明远" },
+        { field: "f1", ftype: "textfield", title: "职务 / 单位", value: "城市规划研究院 总规划师" },
+        { field: "f3", ftype: "textfield", title: "补充（地点等，可留空）", value: "" },
+        {
+          field: "f2", ftype: "dropdown", title: "身份标签", value: "",
+          items: [
+            { text: "（无）", value: "" },
+            { text: "记者", value: "记者" },
+            { text: "主持人", value: "主持人" },
+            { text: "嘉宾", value: "嘉宾" },
+            { text: "专家", value: "专家" },
+            { text: "连线", value: "连线" },
+            { text: "现场", value: "现场" }
+          ]
+        },
+        { ftype: "instruction", value: "连续播出多个人名条时，保持同一图层：人名原地切换，不会重新入场。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root lower lower--name" id="root">
+      <div class="nl-lift">
+        <div class="lower-block">
+          <div class="lower-tags">
+            <div class="nl-chip nl-chip--signal" id="roleChip"><span class="lower-text"><span class="nl-swap" id="role"></span></span></div>
+          </div>
+          <div class="lower-body">
+            <i class="lower-bar"></i>
+            <div class="lower-stack">
+              <div class="lower-mainwrap">
+                <div class="nl-shadow"></div>
+                <i class="lower-line nl-pulse" id="line"></i>
+                <div class="lower-main">
+                  <span class="lower-text"><span class="nl-swap lower-title" id="name"></span></span>
+                </div>
+              </div>
+              <div class="lower-subwrap">
+                <div class="lower-sub" id="subPlate">
+                  <span class="lower-text"><span class="nl-swap lower-subtext" id="title"></span></span>
+                  <i class="nl-sep" id="sep"></i>
+                  <span class="lower-text"><span class="nl-swap lower-subtext is-muted" id="extra"></span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const N = window.Newsline;
+      if (!N) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      N.stage($("stage"));
+
+      const MAX = 1728 - 8 - 72;
+      let lastName = null;
+
+      N.define({
+        kind: "name",
+        slot: "lower",
+        suspendOn: ["fullscreen"],
+        root: $("root"),
+        enterMs: 960,
+        exitMs: 520,
+        defaults: { f0: "李明远", f1: "城市规划研究院 总规划师", f2: "", f3: "" },
+        lift: (env) => Math.max(0, env.reserveBottom + 22 - 72),
+        render(d, ctx) {
+          const animate = ctx.animate;
+          const role = N.clean(d.f2);
+          const title = N.clean(d.f1);
+          const extra = N.clean(d.f3);
+          const name = N.clean(d.f0);
+
+          N.swap($("role"), role, { animate });
+          $("roleChip").classList.toggle("is-empty", !role);
+          N.swap($("name"), name, { animate, fit: { max: MAX, size: 52, min: 40 } });
+          N.swap($("title"), title, { animate, fit: { max: MAX * 0.7, size: 28, min: 22 } });
+          N.swap($("extra"), extra, { animate, fit: { max: MAX * 0.3, size: 28, min: 22 } });
+          $("sep").classList.toggle("is-empty", !title || !extra);
+          $("subPlate").classList.toggle("is-empty", !title && !extra);
+
+          if (animate && (name !== lastName || ctx.fromCarry)) N.retrigger($("line"), "is-pulsing");
+          lastName = name;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
