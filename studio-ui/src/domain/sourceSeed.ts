@@ -1,5 +1,5 @@
 import type { Binding, RundownItem, Source, SourceColumn, SourceRow } from '@/api/types';
-import { editableFields } from './items';
+import { editableFields, groupFollowerField } from './items';
 
 export interface SourceSeed {
   source: Omit<Source, 'id'>;
@@ -15,7 +15,7 @@ const newRowId = () => crypto.randomUUID();
  * row with a column per field.
  */
 export function seedFromItem(item: RundownItem, values: Record<string, string>, name: string): SourceSeed {
-  const fields = editableFields(item);
+  const fields = editableFields(item).filter((field) => field.field !== groupFollowerField(item)?.field);
   const listField = fields.find((field) => field.ftype === 'textarea' && values[field.field]?.includes('\n'));
   if (listField) {
     const lines = values[listField.field].split(/\r?\n/).map((line) => line.trim()).filter(Boolean);

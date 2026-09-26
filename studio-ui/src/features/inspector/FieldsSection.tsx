@@ -1,11 +1,13 @@
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import TuneRounded from '@mui/icons-material/TuneRounded';
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import type { Binding, DataField, RundownItem } from '@/api/types';
 import { Section } from '@/components/Section';
 import { isDerivedField } from '@/domain/binding';
+import { groupFollowerField } from '@/domain/items';
+import { followOptions } from '@/domain/logos';
 import { updateBinding } from '@/store/persistence';
-import { useEffectiveValues, useSource } from '@/store/selectors';
+import { useEffectiveValues, useLogoLibrary, useSource } from '@/store/selectors';
 import { FieldControl } from './FieldControl';
 import { FieldLinkButton } from './FieldLinkButton';
 
@@ -35,6 +37,8 @@ function LinkedValue({ label, column, value }: { label: string; column: string; 
 export function FieldsSection({ item, binding }: Props) {
   const source = useSource(binding.sourceId);
   const values = useEffectiveValues(item.itemID);
+  const logoLibrary = useLogoLibrary();
+  const groupField = groupFollowerField(item)?.field;
   const fields = item.DataFields ?? [];
   const setManual = (field: string, value: string) =>
     updateBinding(item.itemID, (draft) => ({ ...draft, manualValues: { ...draft.manualValues, [field]: value } }));
@@ -54,6 +58,16 @@ export function FieldsSection({ item, binding }: Props) {
     if (!field.field || field.ftype === 'button' || field.ftype === 'hidden') return null;
     const name = field.field;
     const title = field.title || name;
+    if (name === groupField) {
+      const value = binding.manualValues[name] ?? String(field.value ?? '1');
+      return <TextField key={name} select label="跟随标志组" value={value} onChange={(event) =>
+        updateBinding(item.itemID, (draft) => ({ ...draft,
+          manualValues: { ...draft.manualValues, [name]: event.target.value },
+          fieldColumns: { ...draft.fieldColumns, [name]: '' }
+        }))}>
+        {followOptions(logoLibrary, value).map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+      </TextField>;
+    }
     const derived = isDerivedField(binding, name, source);
     const rangeFed = derived && binding.mode === 'range' && binding.rangeField === name;
     const column = source?.columns.find((entry) => entry.key === binding.fieldColumns[name]);

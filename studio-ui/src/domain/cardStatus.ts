@@ -1,6 +1,6 @@
-import type { Binding, RundownItem, Source } from '@/api/types';
+import type { Binding, LogoLibrary, RundownItem, Source } from '@/api/types';
 import { hasOutput, isLogoLibrary, shortTitle } from './items';
-import { groupMembers, slotTitle } from './logos';
+import { groupMembers, groupName, logoTitle } from './logos';
 
 export type CardIssue = 'no-data' | 'no-output' | null;
 
@@ -24,13 +24,13 @@ function line(label: string, full: string): PreviewLine {
 }
 
 /** The first few non-empty visible fields, as shown on a playout card. */
-export function previewLines(item: RundownItem, values: Record<string, string>, limit = 3): PreviewLine[] {
+export function previewLines(item: RundownItem, values: Record<string, string>, limit = 3, library?: LogoLibrary | null): PreviewLine[] {
   if (isLogoLibrary(item)) {
     const follow = values.f6 || '1';
-    const members = follow === 'school' ? [] : groupMembers(values, follow);
+    const members = library && follow !== 'school' ? groupMembers(library, follow) : [];
     return [
-      line('角标跟随', follow === 'school' ? '固定学校标志' : `${follow} 组`),
-      line('当前标志', members.map((index) => slotTitle(values, index)).join('、') || '学校标志（默认）')
+      line('角标跟随', groupName(library, follow)),
+      line('当前标志', members.map((id) => logoTitle(library!, id)).join('、') || '学校标志（默认）')
     ];
   }
   return (item.DataFields ?? [])

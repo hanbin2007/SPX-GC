@@ -63,13 +63,27 @@ export interface Source {
 
 export interface SourcesFile { version: number; revision: number; sources: Source[] }
 
+export interface LogoGroup { id: string; name: string; mode: 'auto' | 'manual'; interval: number }
+
+export interface LogoEntry {
+  id: string;
+  src: string;
+  label: string;
+  style: 'auto' | 'badge' | 'plate';
+  scale: number;
+  dwell: string;
+  groups: string[];
+}
+
 export interface LogoLibrary {
-  version: number;
+  version: 2;
   revision: number;
-  values: Record<string, string>;
-  fieldColumns: Record<string, string>;
+  groups: LogoGroup[];
+  logos: LogoEntry[];
+  school: { groups: string[]; dwell: string };
   sourceId: string;
   rowIndex: number;
+  groupColumns: Record<string, string>;
 }
 
 export interface StudioState {

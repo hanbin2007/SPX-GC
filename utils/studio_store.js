@@ -165,17 +165,22 @@ function saveLogoLibrary(project, rundown, input, expectedRevision, dataroot) {
     throw new StudioError(400, 'Invalid logo library');
   }
   const groupIds = new Set();
+  const groupNames = new Set();
   const groups = input.groups.map((group) => {
     const id = String(group.id || '');
     const name = String(group.name || '').trim();
     const interval = Number(group.interval);
-    if (!GROUP_ID.test(id) || groupIds.has(id) || !name || name.length > 80 ||
+    if (!GROUP_ID.test(id) || groupIds.has(id) || !name || groupNames.has(name) || name.length > 80 ||
         !['auto', 'manual'].includes(group.mode) || !Number.isFinite(interval) || interval < 3 || interval > 3600) {
       throw new StudioError(400, 'Invalid or duplicate logo group');
     }
     groupIds.add(id);
+    groupNames.add(name);
     return { id, name, mode: group.mode, interval };
   });
+  if (groups.some((group) => GROUP_ID.test(group.name) && group.name !== group.id && groupIds.has(group.name))) {
+    throw new StudioError(400, 'Logo group name conflicts with a group number');
+  }
   const cleanGroups = (value) => {
     if (!Array.isArray(value) || value.some((id) => !groupIds.has(String(id)))) {
       throw new StudioError(400, 'Logo belongs to an unavailable group');
@@ -231,7 +236,8 @@ function resolveLogoLibrary(library, sources) {
   const source = sources.sources.find((entry) => entry.id === library.sourceId);
   if (!source) return resolved;
   const row = source.rows[library.rowIndex] || {};
-  const names = new Map(resolved.groups.flatMap((group) => [[group.id, group.id], [group.name, group.id]]));
+  const names = new Map(resolved.groups.map((group) => [group.name, group.id]));
+  for (const group of resolved.groups) names.set(group.id, group.id);
   const fromCell = (column) => [...new Set(String(row[column] ?? '').split(/[,，;；\n]+/).flatMap((part) => {
     const whole = part.trim();
     return names.has(whole) ? [names.get(whole)] : whole.split(/\s+/).map((token) => names.get(token)).filter(Boolean);

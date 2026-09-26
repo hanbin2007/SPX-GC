@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Binding } from '@/api/types';
 import { effectiveValues, findSource } from '@/domain/binding';
-import { defaultBinding, isLogoLibrary } from '@/domain/items';
-import { resolveLogoValues } from '@/domain/logos';
+import { defaultBinding } from '@/domain/items';
+import { resolveLogoLibrary } from '@/domain/logos';
 import { airSignature } from '@/domain/signature';
 import { useStudio } from './studio';
 
@@ -29,10 +29,10 @@ export function useLogoLibrary() {
   return useStudio((store) => store.state?.logoLibrary ?? null);
 }
 
-export function useLogoValues() {
+export function useResolvedLogoLibrary() {
   const library = useLogoLibrary();
   const sources = useSources();
-  return useMemo(() => resolveLogoValues(library, sources), [library, sources]);
+  return useMemo(() => resolveLogoLibrary(library, sources), [library, sources]);
 }
 
 /** Resolved field values for an item, including the shared logo library. */
@@ -40,13 +40,10 @@ export function useEffectiveValues(itemId: string | null) {
   const item = useItem(itemId);
   const binding = useBinding(itemId);
   const sources = useSources();
-  const library = useLogoLibrary();
   return useMemo(() => {
     if (!item) return {};
-    const values = effectiveValues(item, binding ?? undefined, sources);
-    if (isLogoLibrary(item)) Object.assign(values, resolveLogoValues(library, sources));
-    return values;
-  }, [item, binding, sources, library]);
+    return effectiveValues(item, binding ?? undefined, sources);
+  }, [item, binding, sources]);
 }
 
 /** True when the item is on air and its current config differs from what was sent. */

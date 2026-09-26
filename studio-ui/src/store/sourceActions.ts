@@ -95,10 +95,10 @@ export function forgetColumn(sourceId: string, key: string) {
       rangeTimeColumn: draft.rangeTimeColumn === key ? '' : draft.rangeTimeColumn
     }));
   }
-  if (state.logoLibrary?.sourceId === sourceId && Object.values(state.logoLibrary.fieldColumns).includes(key)) {
+  if (state.logoLibrary?.sourceId === sourceId && Object.values(state.logoLibrary.groupColumns).includes(key)) {
     updateLogoLibrary((library) => ({
       ...library,
-      fieldColumns: Object.fromEntries(Object.entries(library.fieldColumns).map(([field, column]) => [field, column === key ? '' : column]))
+      groupColumns: Object.fromEntries(Object.entries(library.groupColumns).map(([field, column]) => [field, column === key ? '' : column]))
     }));
   }
 }
@@ -109,6 +109,6 @@ export function columnUsage(sourceId: string, key: string) {
   if (!state) return 0;
   let count = Object.values(state.bindings.items).filter((binding) => binding.sourceId === sourceId &&
     (Object.values(binding.fieldColumns).includes(key) || binding.rangeTextColumn === key || binding.rangeTimeColumn === key)).length;
-  if (state.logoLibrary?.sourceId === sourceId && Object.values(state.logoLibrary.fieldColumns).includes(key)) count += 1;
+  if (state.logoLibrary?.sourceId === sourceId && Object.values(state.logoLibrary.groupColumns).includes(key)) count += 1;
   return count;
 }

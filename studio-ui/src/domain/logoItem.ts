@@ -26,11 +26,3 @@ export const BUG_STATUS_OPTIONS = [
   { value: 'record', label: '录播' },
   { value: 'none', label: '不显示' }
 ] as const;
-
-export const FOLLOW_OPTIONS = [
-  { value: '1', label: '1 组' },
-  { value: '2', label: '2 组' },
-  { value: '3', label: '3 组' },
-  { value: '4', label: '4 组' },
-  { value: 'school', label: '校徽' }
-] as const;

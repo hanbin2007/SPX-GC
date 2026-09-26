@@ -4,13 +4,13 @@ import HistoryRounded from '@mui/icons-material/HistoryRounded';
 import SensorsRounded from '@mui/icons-material/SensorsRounded';
 import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded';
 import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
-import { Box, Button, FormControlLabel, Stack, Switch, TextField, Typography } from '@mui/material';
+import { Box, Button, FormControlLabel, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material';
 import type { Binding, RundownItem } from '@/api/types';
 import { SegmentedButtons } from '@/components/SegmentedButtons';
 import { Section } from '@/components/Section';
-import { FOLLOW_OPTIONS } from '@/domain/logoItem';
+import { followOptions } from '@/domain/logos';
 import { updateBinding } from '@/store/persistence';
-import { useEffectiveValues } from '@/store/selectors';
+import { useEffectiveValues, useLogoLibrary } from '@/store/selectors';
 import { setView } from '@/store/studio';
 
 const STATUS_ICONS = {
@@ -23,6 +23,7 @@ const STATUS_ICONS = {
 /** The corner bug: its logos come from the project library, so only display options live here. */
 export function BugSection({ item }: { item: RundownItem; binding: Binding }) {
   const values = useEffectiveValues(item.itemID);
+  const library = useLogoLibrary();
   const set = (field: string, value: string) =>
     updateBinding(item.itemID, (draft) => ({ ...draft, manualValues: { ...draft.manualValues, [field]: value } }));
   return (
@@ -37,11 +38,9 @@ export function BugSection({ item }: { item: RundownItem; binding: Binding }) {
             { value: 'none', label: '不显示', icon: STATUS_ICONS.none }
           ]} />
       </Box>
-      <Box>
-        <Typography variant="caption" component="div" sx={{ color: 'text.secondary', mb: 1 }}>角标跟随的标志组</Typography>
-        <SegmentedButtons ariaLabel="角标跟随" value={values.f6 || '1'} onChange={(value) => set('f6', value)} showCheck={false}
-          options={FOLLOW_OPTIONS.map((option) => ({ value: option.value, label: option.label }))} />
-      </Box>
+      <TextField select label="角标跟随的标志组" value={values.f6 || '1'} onChange={(event) => set('f6', event.target.value)}>
+        {followOptions(library, values.f6 || '1').map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+      </TextField>
       <TextField label="活动名称" placeholder="可留空" value={values.f1 ?? ''} onChange={(event) => set('f1', event.target.value)} />
       <Stack>
         <FormControlLabel label="显示时钟" labelPlacement="start" sx={{ mx: 0, justifyContent: 'space-between' }}

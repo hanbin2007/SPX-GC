@@ -9,14 +9,14 @@ import { useFileDrop } from '@/hooks/useFileDrop';
 import { LOGO_ACCEPT, uploadLogo } from '@/store/logoActions';
 import type { LogoEditing } from './useLogoEditing';
 
-interface Props { editing: LogoEditing; value: string; slot: number; onChange: (value: string) => void }
+interface Props { editing: LogoEditing; value: string; logoId: string; onChange: (value: string) => void }
 
-const TILE = { width: '100%', aspectRatio: '1', borderRadius: 3, display: 'grid', placeItems: 'center', position: 'relative' } as const;
+const TILE = { width: '100%', aspectRatio: '1', borderRadius: 2, display: 'grid', placeItems: 'center', position: 'relative' } as const;
 
 /** Visual image picker: every library image as a tile, plus upload. */
-export function AssetGallery({ editing, value, slot, onChange }: Props) {
+export function AssetGallery({ editing, value, logoId, onChange }: Props) {
   const input = useRef<HTMLInputElement>(null);
-  const { over, bind } = useFileDrop((files) => uploadLogo(files[0], slot), (file) => file.type.startsWith('image/'));
+  const { over, bind } = useFileDrop((files) => uploadLogo(files[0], logoId), (file) => file.type.startsWith('image/'));
   const missing = value && !editing.assetOf(value);
   return (
     <Box {...bind} sx={(theme) => ({
@@ -49,7 +49,7 @@ export function AssetGallery({ editing, value, slot, onChange }: Props) {
       })}
       {missing && <Typography variant="caption" sx={{ gridColumn: '1 / -1', color: 'error.main', px: 1 }}>当前图片文件未找到：{value}</Typography>}
       <input ref={input} type="file" accept={LOGO_ACCEPT} hidden
-        onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) uploadLogo(file, slot); }} />
+        onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file) uploadLogo(file, logoId); }} />
     </Box>
   );
 }

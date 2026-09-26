@@ -1,6 +1,6 @@
 import { api, ApiError } from '@/api/client';
 import type { Binding, LogoLibrary, Source, StudioState } from '@/api/types';
-import { defaultBinding, isLogoLibrary } from '@/domain/items';
+import { defaultBinding, groupFollowerField, isLogoLibrary } from '@/domain/items';
 import { sanitizeLogoItemBinding } from '@/domain/logoItem';
 import { airSignature } from '@/domain/signature';
 import { createLock } from './lock';
@@ -150,6 +150,12 @@ export function updateBinding(itemId: string, change: Partial<Binding> | ((bindi
   if (!state || !item || !current) return;
   let next = typeof change === 'function' ? change(structuredClone(current)) : { ...current, ...change };
   if (isLogoLibrary(item)) next = sanitizeLogoItemBinding(item, next, state.sources);
+  const groupField = groupFollowerField(item)?.field;
+  if (groupField && next.fieldColumns[groupField]) {
+    next = { ...next, fieldColumns: { ...next.fieldColumns, [groupField]: '' },
+      manualValues: { ...next.manualValues,
+        [groupField]: next.manualValues[groupField] ?? String(item.DataFields?.find((field) => field.field === groupField)?.value ?? '1') } };
+  }
   setStudio({
     state: { ...state, bindings: { ...state.bindings, items: { ...state.bindings.items, [itemId]: next } } }
   });

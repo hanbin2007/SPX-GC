@@ -1,67 +1,73 @@
-import type { LogoLibrary, SourcesFile } from '@/api/types';
+import type { LogoAsset, LogoEntry, LogoLibrary, SourcesFile } from '@/api/types';
 
-export const LOGO_GROUPS = ['1', '2', '3', '4'] as const;
-export type LogoGroup = typeof LOGO_GROUPS[number];
-
-/** Index 0 is the school emblem; 1-6 are the uploaded logo slots. */
-export const MEMBER_FIELDS = ['f4', 'f15', 'f25', 'f35', 'f45', 'f55', 'f65'];
-export const SLOT_INDEXES = [1, 2, 3, 4, 5, 6] as const;
 export const SCHOOL_EMBLEM_URL = '/templates/custom/czgz-md3/img/emblem-mark.png';
-
-export const slotField = {
-  file: (slot: number) => `f${slot}0`,
-  name: (slot: number) => `f${slot}1`,
-  style: (slot: number) => `f${slot}2`,
-  scale: (slot: number) => `f${slot}3`,
-  dwell: (slot: number) => `f${slot}4`,
-  groups: (slot: number) => MEMBER_FIELDS[slot]
-};
-
-export const groupField = {
-  mode: (group: string) => `f${68 + Number(group) * 2}`,
-  interval: (group: string) => `f${69 + Number(group) * 2}`
-};
-
-export const SCHOOL_DWELL_FIELD = 'f5';
-
-export function parseGroups(value: unknown): LogoGroup[] {
-  return LOGO_GROUPS.filter((group) => String(value ?? '').includes(group));
-}
-
-export function formatGroups(groups: Iterable<string>) {
-  return [...new Set(groups)].sort().join(' ');
-}
-
-/** Library values with the datasource-driven group membership applied. */
-export function resolveLogoValues(library: LogoLibrary | null | undefined, sources: SourcesFile | undefined) {
-  if (!library) return {} as Record<string, string>;
-  const values = { ...library.values };
-  const row = sources?.sources.find((source) => source.id === library.sourceId)?.rows[library.rowIndex];
-  for (const field of MEMBER_FIELDS) {
-    const column = library.fieldColumns?.[field];
-    if (column) values[field] = String(row?.[column] ?? '');
-  }
-  return values;
-}
+export const SCHOOL_ID = 'school';
 
 export function fileLabel(value: string) {
   return value.split('/').pop()?.replace(/\.[^.]+$/, '') ?? value;
 }
 
-export function slotTitle(values: Record<string, string>, slot: number) {
-  if (slot === 0) return '学校标志';
-  const name = String(values[slotField.name(slot)] ?? '').trim();
-  const file = String(values[slotField.file(slot)] ?? '');
-  if (name && name !== '-') return name;
-  return file ? fileLabel(file) : `图片 ${slot}`;
+export function logoTitle(library: LogoLibrary, id: string) {
+  if (id === SCHOOL_ID) return '学校标志';
+  const logo = library.logos.find((entry) => entry.id === id);
+  if (!logo) return '已删除图片';
+  return logo.label && logo.label !== '-' ? logo.label :
+    (logo.src ? fileLabel(logo.src) : `图片 ${library.logos.indexOf(logo) + 1}`);
 }
 
-/** Whether a member (0 = emblem) is usable: slots need an image. */
-export function memberAvailable(values: Record<string, string>, index: number) {
-  return index === 0 || Boolean(values[slotField.file(index)]);
+export function logoUrl(library: LogoLibrary, id: string, assets: LogoAsset[]) {
+  if (id === SCHOOL_ID) return SCHOOL_EMBLEM_URL;
+  const src = library.logos.find((logo) => logo.id === id)?.src;
+  return assets.find((asset) => asset.value === src)?.url ?? null;
 }
 
-export function groupMembers(values: Record<string, string>, group: string) {
-  return MEMBER_FIELDS.map((_, index) => index)
-    .filter((index) => memberAvailable(values, index) && parseGroups(values[MEMBER_FIELDS[index]]).includes(group as LogoGroup));
+export function memberGroups(library: LogoLibrary, id: string) {
+  return id === SCHOOL_ID ? library.school.groups : library.logos.find((logo) => logo.id === id)?.groups ?? [];
+}
+
+export function groupMembers(library: LogoLibrary, groupId: string) {
+  return [
+    ...(library.school.groups.includes(groupId) ? [SCHOOL_ID] : []),
+    ...library.logos.filter((logo) => logo.src && logo.groups.includes(groupId)).map((logo) => logo.id)
+  ];
+}
+
+export function groupName(library: LogoLibrary | null | undefined, groupId: string) {
+  if (groupId === SCHOOL_ID) return '固定学校标志';
+  return library?.groups.find((group) => group.id === groupId)?.name ?? `${groupId} 组`;
+}
+
+export function followOptions(library: LogoLibrary | null | undefined, selected?: string) {
+  const options = [
+    { value: SCHOOL_ID, label: '固定学校标志' },
+    ...(library?.groups ?? []).map((group) => ({ value: group.id, label: group.name }))
+  ];
+  if (selected && !options.some((entry) => entry.value === selected)) {
+    options.push({ value: selected, label: `已删除组 ${selected}` });
+  }
+  return options;
+}
+
+/** Apply only membership columns; file, label, style and timing remain manual. */
+export function resolveLogoLibrary(library: LogoLibrary | null | undefined, sources: SourcesFile | undefined) {
+  if (!library) return null;
+  const resolved = structuredClone(library);
+  const row = sources?.sources.find((source) => source.id === library.sourceId)?.rows[library.rowIndex];
+  if (!row) return resolved;
+  const names = new Map(resolved.groups.map((group) => [group.name, group.id]));
+  for (const group of resolved.groups) names.set(group.id, group.id);
+  const fromCell = (column: string) => [...new Set(String(row[column] ?? '').split(/[,，;；\n]+/).flatMap((part) => {
+    const whole = part.trim();
+    return names.has(whole) ? [names.get(whole)!] : whole.split(/\s+/).map((token) => names.get(token)).filter((id): id is string => Boolean(id));
+  }))];
+  if (resolved.groupColumns.school) resolved.school.groups = fromCell(resolved.groupColumns.school);
+  for (const logo of resolved.logos) {
+    const column = resolved.groupColumns[logo.id];
+    if (column) logo.groups = fromCell(column);
+  }
+  return resolved;
+}
+
+export function updateMember(library: LogoLibrary, id: string, change: (member: LogoEntry) => LogoEntry): LogoLibrary {
+  return { ...library, logos: library.logos.map((logo) => logo.id === id ? change(logo) : logo) };
 }

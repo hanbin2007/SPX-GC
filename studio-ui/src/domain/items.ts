@@ -1,10 +1,15 @@
 import type { Binding, DataField, RundownItem } from '@/api/types';
 
 const LOGO_LIBRARY_PATH = /(?:^|\/)custom\/czgz-md3\/CZ_BUG\.html$/i;
-const NON_EDITABLE = new Set(['instruction', 'divider', 'button']);
+const NON_EDITABLE = new Set(['instruction', 'divider', 'button', 'hidden']);
 
 export function isLogoLibrary(item?: RundownItem | null) {
   return LOGO_LIBRARY_PATH.test(String(item?.relpath ?? ''));
+}
+
+export function groupFollowerField(item?: RundownItem | null) {
+  if (!item || isLogoLibrary(item) || !/custom\/czgz-md3\//i.test(String(item.relpath ?? ''))) return null;
+  return (item.DataFields ?? []).find((field) => field.field && String(field.title ?? '').startsWith('标志组')) ?? null;
 }
 
 export function templateFile(item: RundownItem) {

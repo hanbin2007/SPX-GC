@@ -1,4 +1,5 @@
 import type { Binding, RundownItem, Source, SourcesFile } from '@/api/types';
+import { groupFollowerField } from './items';
 
 export function findSource(sources: SourcesFile | undefined, id: string | undefined) {
   return id ? sources?.sources.find((source) => source.id === id) : undefined;
@@ -22,7 +23,7 @@ export function effectiveValues(item: RundownItem, binding: Binding | undefined,
   if (!source) return values;
   const row = source.rows[binding.mode === 'range' ? binding.rangeStart - 1 : binding.rowIndex];
   for (const [field, column] of Object.entries(binding.fieldColumns ?? {})) {
-    if (column) values[field] = String(row?.[column] ?? '');
+    if (column && field !== groupFollowerField(item)?.field) values[field] = String(row?.[column] ?? '');
   }
   if (binding.mode === 'range' && binding.rangeField && binding.rangeTextColumn) {
     values[binding.rangeField] = rangeLines(source, binding).join('\n');

@@ -1,5 +1,5 @@
 import type { Binding, RundownItem, Source } from '@/api/types';
-import { editableFields, listFields } from './items';
+import { editableFields, groupFollowerField, listFields } from './items';
 
 const normalise = (text: string) => text.replace(/[（(][^）)]*[）)]/g, '').replace(/[\s/·:：_-]+/g, '').toLowerCase();
 
@@ -34,6 +34,7 @@ export function bindToSource(item: RundownItem, binding: Binding, source: Source
   };
   if (!source) return { ...next, mode: 'row' };
   for (const field of editableFields(item)) {
+    if (field.field === groupFollowerField(item)?.field) continue;
     const column = findColumn(source, field.title || field.field);
     if (column) next.fieldColumns[field.field] = column.key;
   }
