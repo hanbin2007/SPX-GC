@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./gfx/opener.css">
   <script>
     window.SPXGCTemplateDefinition = {
-      description: "常高 M3 · 开场片头（约 28 秒，九场：1907 · 校园 · 日夜 · 宝塔 · 校名石 · 校徽 · 标版）",
+      description: "常高 M3 · 开场片头（约 35 秒，九场，按背景音乐卡点：1907 · 校园 · 日夜 · 宝塔 · 校名石 · 校徽 · 标版）",
       playserver: "-",
       playchannel: "1",
       playlayer: "50",
@@ -27,12 +27,22 @@
             { text: "停在校徽画面（点收起再揭开）", value: "hold" }
           ]
         },
-        { ftype: "instruction", value: "盖在最上层（第 5 层）播放，播出时角标自动隐藏。“自动揭开”时片头结束后画面已回到直播，之后在 SPX 里点一下收起即可复位。中途点收起会立即揭开。" }
+        {
+          field: "f3", ftype: "dropdown", title: "背景音乐（动画按它的节拍剪辑）", value: "1",
+          items: [
+            { text: "开 · 音量 100%", value: "1" },
+            { text: "开 · 音量 70%", value: "0.7" },
+            { text: "开 · 音量 40%", value: "0.4" },
+            { text: "关（静音，另行播放音乐时选这个）", value: "0" }
+          ]
+        },
+        { ftype: "instruction", value: "盖在最上层（第 5 层）播放，播出时角标自动隐藏。OBS 里请在浏览器源属性勾选“通过 OBS 控制音频”，音乐才会进直播混音。“自动揭开”时片头结束后画面已回到直播，之后在 SPX 里点一下收起即可复位。中途点收起会立即揭开。" }
       ]
     };
   </script>
 </head>
 <body>
+  <audio id="bgm" src="./media/opener-bgm.ogg" preload="auto"></audio>
   <main class="stage" id="stage">
     <!-- Trailing rims of the final reveal (under the cover). -->
     <i class="op-rim op-rim--soft" id="rimSoft" aria-hidden="true"></i>
