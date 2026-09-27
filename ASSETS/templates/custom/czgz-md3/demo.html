@@ -256,7 +256,7 @@
         <button class="chip" type="button" id="safeToggle" aria-pressed="false">安全框</button>
       </div>
       <p class="note">
-        与 SPX 渲染器一致：每次“播出”都会重新载入该层模板再 update + play。同层连续播出同类图文（人名条 ⇄ 标题条、两张全屏卡）会从上一条无缝形变过去；
+        与 SPX 渲染器一致：人名条和标题条同层切换时不重载模板，直接原位形变；其他“播出”会重新载入该层模板。
         播出中点“更新”走原地形变。滚动字幕在播时人名条自动上移；全屏卡在播时角标自动隐藏；转场在完全遮挡的一刻会自动切换机位 A/B 背景，演示切机时机。
       </p>
     </section>
@@ -370,6 +370,13 @@
       const s = state[g.id];
       const f = frame(g.layer);
       const prev = layerOwner[g.layer];
+      if (prev && prev !== g.id && state[prev].on &&
+          f.contentWindow?.CZStrapSwitch?.(g.file, JSON.stringify(dataFor(g)))) {
+        setOn(prev, false);
+        layerOwner[g.layer] = g.id;
+        setOn(g.id, true);
+        return;
+      }
       if (prev && prev !== g.id) setOn(prev, false);
       layerOwner[g.layer] = g.id;
       f.onload = () => {

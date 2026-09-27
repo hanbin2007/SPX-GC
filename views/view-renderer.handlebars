@@ -470,7 +470,12 @@
                     if (projectFormat === "OGRAF") {
                         playLayer(LayerNro, data.fields, projectFormat, incomingData);
                     }else {
-                        document.getElementById('layer' + LayerNro).onload = function() {
+                        const frame = document.getElementById('layer' + LayerNro);
+                        if (typeof frame.contentWindow?.CZStrapSwitch === 'function' &&
+                            frame.contentWindow.CZStrapSwitch(data.relpath, formatJSONAndSetDomFields(data.fields))) {
+                            break;
+                        }
+                        frame.onload = function() {
                             playLayer(LayerNro, data.fields, projectFormat, incomingData);
                         };
                     }

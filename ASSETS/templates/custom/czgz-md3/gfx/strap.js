@@ -238,6 +238,17 @@
       onChange: tick
     });
 
+    window.CZStrapSwitch = function (relpath, data) {
+      if (!visible || !data) return false;
+      const match = /^(?:\/?custom\/czgz-md3\/)?CZ_(NAME|CAPTION)\.html(?:[?#].*)?$/i.exec(relpath || "");
+      if (!match) return false;
+      config.model = match[1].toUpperCase() === "NAME"
+        ? (d) => ({ side: d.f3 === "right" ? "right" : "left", kicker: "", title: d.f0, tag: d.f2, sub: d.f1, logo: d.f4 })
+        : (d) => ({ side: "left", kicker: d.f0, title: d.f1, tag: "", sub: d.f2, logo: d.f3 });
+      window.update(data);
+      return true;
+    };
+
     poseOff();
 
     return window.CZ.graphic({
