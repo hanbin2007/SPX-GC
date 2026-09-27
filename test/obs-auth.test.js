@@ -25,7 +25,8 @@ test('fixed renderer token validates without granting a user session', (t) => {
 });
 
 test('renderer token is limited to renderer assets and transport', () => {
-  for (const uri of ['/renderer', '/renderer/scalable', '/renderer?layers=1,2',
+  for (const uri of ['/renderer', '/renderer/', '/renderer/scalable', '/renderer?layers=1,2',
+    '/renderer/js/socket.io.js',
     '/templates/custom/czgz-md3/CZ_BUG.html', '/templates/custom/czgz-md3/logos/%E6%A0%87%E5%BF%97.png',
     '/js/socket.io.js', '/css/renderer.css', '/img/logo.png']) {
     assert.equal(obs.rendererPathAllowed(uri, 'GET'), true, uri);

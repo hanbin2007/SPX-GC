@@ -45,7 +45,8 @@ function rendererPathAllowed(uri, method) {
       path.posix.normalize(pathname) !== pathname) return false;
   if (pathname === '/socket.io' || pathname === '/socket.io/') return method === 'GET' || method === 'POST';
   if (method !== 'GET' && method !== 'HEAD') return false;
-  return ['/renderer', '/renderer/', '/renderer/index.html', '/renderer/scalable', '/renderer/scalable/'].includes(pathname) ||
+  return ['/renderer', '/renderer/', '/renderer/index.html', '/renderer/scalable', '/renderer/scalable/',
+    '/renderer/js/socket.io.js'].includes(pathname) ||
     ['/templates/', '/js/', '/css/', '/img/', '/vendor/'].some((prefix) => pathname.startsWith(prefix));
 }
 

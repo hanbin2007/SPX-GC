@@ -1,7 +1,7 @@
 (async () => {
   const status = document.getElementById('obsStatus');
   const token = window.location.hash.slice(1);
-  const destination = window.location.pathname === '/obs/scalable' ? '/renderer/scalable' : '/renderer';
+  const destination = window.location.pathname === '/obs/scalable' ? '/renderer/scalable' : '/renderer/';
   const query = window.location.search;
   if (!/^[A-Za-z0-9_-]{43,128}$/.test(token)) {
     status.textContent = 'OBS 渲染令牌缺失。';

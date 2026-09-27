@@ -21,3 +21,9 @@ test("legacy SPX update defaults to an SPX graphic", () => {
     (fn) => fn(), (layer, fields, format) => { result = { layer, fields, format }; });
   assert.equal(result.format, "OGRAF");
 });
+
+test('renderer loads Socket.IO from an absolute asset path', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../views/view-renderer.handlebars'), 'utf8');
+  assert.match(source, /src="\/js\/socket\.io\.js"/);
+  assert.doesNotMatch(source, /src="\.\/js\/socket\.io\.js"/);
+});
