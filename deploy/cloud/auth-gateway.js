@@ -6,10 +6,12 @@ const cookieSession = require('cookie-session');
 const Keygrip = require('keygrip');
 const { engine } = require('express-handlebars');
 const { safeNext, verifyPassword, readUsers, hashPassword } = require('../../utils/cloud_auth');
+const obsAuth = require('../../utils/obs_auth');
 
 const authDir = process.env.SPX_AUTH_DIR;
 if (!authDir) throw new Error('SPX_AUTH_DIR is required');
 const usersFile = path.join(authDir, 'users.json');
+const rendererTokenFile = path.join(authDir, 'renderer-token');
 const signingKey = fs.readFileSync(path.join(authDir, 'signing-key'), 'utf8').trim();
 if (!/^[0-9a-f]{64,}$/.test(signingKey)) throw new Error('Invalid auth signing key');
 
@@ -27,7 +29,7 @@ app.set('views', path.resolve(__dirname, '../../views'));
 app.use(cookieSession({
   name: secureCookie ? '__Host-spx_auth' : 'spx_auth_test',
   keys: new Keygrip([signingKey], 'SHA384', 'base64'),
-  maxAge: SESSION_MS,
+  maxAge: obsAuth.SESSION_MS,
   path: '/',
   httpOnly: true,
   secure: secureCookie,
@@ -47,6 +49,10 @@ function currentUser(req) {
   } catch (_) {
     return null;
   }
+}
+
+function currentRenderer(req) {
+  return obsAuth.validSession(req.session, obsAuth.readToken(rendererTokenFile));
 }
 
 function loginPage(req, res, options = {}) {
@@ -86,6 +92,23 @@ function recordFailure(key) {
 app.get('/health', (req, res) => res.sendStatus(200));
 app.get('/auth/login.css', (req, res) => res.sendFile(path.resolve(__dirname, '../../static/css/cloud-login.css')));
 app.get('/auth/logo.png', (req, res) => res.sendFile(path.resolve(__dirname, '../../static/img/spx_online.png')));
+app.get('/obs/bootstrap.js', (req, res) => res.sendFile(path.resolve(__dirname, '../../static/js/obs-bootstrap.js')));
+app.get('/obs/bootstrap.css', (req, res) => res.sendFile(path.resolve(__dirname, '../../static/css/obs-bootstrap.css')));
+app.get(['/obs', '/obs/scalable'], (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('Referrer-Policy', 'no-referrer');
+  res.set('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'");
+  res.render('view-obs-bootstrap', { layout: false });
+});
+
+app.post('/obs/authorize', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const expected = obsAuth.readToken(rendererTokenFile);
+  if (!expected) return res.sendStatus(503);
+  if (!obsAuth.matchesToken(req.body?.token, expected)) return res.sendStatus(401);
+  req.session = { kind: 'renderer', tokenVersion: obsAuth.fingerprint(expected), issuedAt: Date.now() };
+  return res.sendStatus(204);
+});
 
 app.get('/login', (req, res) => {
   const next = safeNext(req.query.next);
@@ -115,7 +138,15 @@ app.post('/auth/login', (req, res) => {
 
 app.get('/auth/check', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  return res.sendStatus(currentUser(req) ? 204 : 401);
+  if (currentUser(req)) {
+    res.set('X-SPX-Role', 'admin');
+    return res.sendStatus(204);
+  }
+  if (currentRenderer(req) && obsAuth.rendererPathAllowed(req.get('X-Original-URI'), req.get('X-Original-Method'))) {
+    res.set('X-SPX-Role', 'renderer');
+    return res.sendStatus(204);
+  }
+  return res.sendStatus(401);
 });
 
 app.get('/auth/me', (req, res) => {

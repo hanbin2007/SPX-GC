@@ -71,6 +71,7 @@ if (!configfileref) {
 
 const spx = require('./utils/spx_server_functions.js');
 const logger = require('./utils/logger.js');
+const obsAuth = require('./utils/obs_auth.js');
 
 // STATICS
 app.use(express.static(path.join(__dirname,('static'))))
@@ -925,6 +926,7 @@ global.io = require('socket.io')(server);
 var clients = {}
 
 io.sockets.on('connection', function (socket) {
+  const obsRenderer = socket.handshake.headers['x-spx-role'] === 'renderer';
   logger.verbose('*** Socket connection (' + socket.id + ") Connections: " + io.engine.clientsCount);
   clients[socket.id] = socket;
   notifyMultipleControllers(); // on Connection
@@ -944,10 +946,12 @@ io.sockets.on('connection', function (socket) {
   }); // end disconnect
 
   socket.on('SPXWebRendererMessage', function (data) {
+    if (obsRenderer && !obsAuth.rendererSocketEventAllowed('SPXWebRendererMessage', data)) return;
     io.emit('SPXMessage2Client', data);
   });
 
   socket.on('SPXMessage2Server', function (data) {
+    if (obsRenderer && !obsAuth.rendererSocketEventAllowed('SPXMessage2Server', data)) return;
     logger.verbose('SPXMessage2Server received', data)
     switch (data.spxcmd) {
 

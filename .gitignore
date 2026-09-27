@@ -103,3 +103,8 @@ ASSETS/**
 
 # Studio UI (studio-ui/) sources; its tsconfig is not a secret config file
 !studio-ui/tsconfig.json
+
+# Local renderer credentials are kept outside Git.
+renderer-token
+obs-renderer-url.local.txt
+!deploy/cloud/OBS.md
