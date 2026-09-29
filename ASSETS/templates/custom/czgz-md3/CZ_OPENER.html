@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="./gfx/opener.css">
   <script>
     window.SPXGCTemplateDefinition = {
-      description: "常高 M3 · 开场片头（约 35 秒，九场，按背景音乐卡点：1907 · 校园 · 日夜 · 宝塔 · 校名石 · 校徽 · 标版）",
+      description: "常高 M3 · 开场片头（约 34 秒，九场，按背景音乐卡点：1907 · 校园 · 日夜 · 宝塔 · 校名石 · 校徽 · 标版；校园、宝塔两场带制作人员条）",
       playserver: "-",
       playchannel: "1",
       playlayer: "50",
@@ -36,6 +36,7 @@
             { text: "关（静音，另行播放音乐时选这个）", value: "0" }
           ]
         },
+        { field: "f4", ftype: "textarea", title: "制作人员（每行“职务 | 姓名”，多人用空格隔开，最多 9 行，留空不显示）", value: "出品 | 校学生会融媒体中心\n总导演 | 张三\n导播 | 李四\n摄像 | 王五 赵六\n技术 | 孙七\n视觉包装 | 周八" },
         { ftype: "instruction", value: "盖在最上层（第 5 层）播放，播出时角标自动隐藏。OBS 里请在浏览器源属性勾选“通过 OBS 控制音频”，音乐才会进直播混音。“自动揭开”时片头结束后画面已回到直播，之后在 SPX 里点一下收起即可复位。中途点收起会立即揭开。" }
       ]
     };
@@ -77,6 +78,12 @@
             <span class="op-year__range" id="yearRange"></span>
           </div>
         </div>
+      </div>
+      <!-- Production credits on the quiet campus shots (sunset, pagoda) -->
+      <div class="op-credits" id="credits" aria-label="制作人员">
+        <div class="op-crgrp op-crgrp--top" id="crTop"></div>
+        <div class="op-crgrp op-crgrp--left" id="crLeft"></div>
+        <div class="op-crgrp op-crgrp--right" id="crRight"></div>
       </div>
       <div class="op-caption" id="caption">
         <i class="cz-spark"></i><span>CHANGZHOU SENIOR HIGH SCHOOL OF JIANGSU PROVINCE</span><i class="cz-spark"></i>

@@ -1,8 +1,8 @@
-/* Opening title sequence (~28 s, nine scenes): shape burst -> "SINCE 1907"
-   -> campus at sunset -> day/night time-lapse -> pagoda close-up -> name
-   stone close-up -> moon match-cut into the emblem -> lockup -> layered
-   reveal. Nothing on screen is ever at rest: every element either runs a
-   scripted move or an idle loop. */
+/* Opening title sequence (~34 s, nine scenes, cut to its music): shape burst
+   -> "SINCE 1907" -> campus at sunset (credits) -> day/night time-lapse ->
+   pagoda close-up (credits) -> name stone close-up -> moon match-cut into the
+   emblem -> lockup -> layered reveal. Nothing on screen is ever at rest:
+   every element either runs a scripted move or an idle loop. */
 
 .op {
   position: absolute;
@@ -31,6 +31,7 @@
 .op:not([data-act="s1"]):not([data-act="s2"]):not([data-act="s23"]) .op-s2rim,
 .op:not([data-act="campus"]) .op-fx,
 .op:not([data-act="campus"]) .op-caption,
+.op:not([data-act="campus"]):not([data-act="s23"]) .op-credits,
 .op:not([data-act="mark"]) .op-deco,
 .op:not([data-act="mark"]) .op-mark { visibility: hidden; }
 
@@ -43,6 +44,7 @@
 .op:not([data-act="s1"]):not([data-act="s2"]):not([data-act="s23"]) .op-s2 *,
 .op:not([data-act="campus"]) .op-fx *,
 .op:not([data-act="campus"]) .op-caption *,
+.op:not([data-act="campus"]):not([data-act="s23"]) .op-credits *,
 .op:not([data-act="mark"]) .op-deco *,
 .op:not([data-act="mark"]) .op-mark * { animation-play-state: paused !important; }
 
@@ -282,6 +284,64 @@
 }
 
 .op-caption .cz-spark { --size: 22px; color: var(--teal); animation: op-spin 6s linear infinite; }
+
+/* Production credits: small connected straps, [role | name], stacked in a
+   column that drifts. Sunset: top left; pagoda: in the sky between the
+   moon and the tower, and right of the tower. */
+.op-credits { position: absolute; inset: 0; pointer-events: none; }
+
+.op-crgrp {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  filter: var(--elev-2);          /* on the group: the rows' clip would cut it */
+  animation: op-drift-y 5s ease-in-out infinite alternate;
+}
+
+.op-crgrp--top { left: 120px; top: 118px; align-items: flex-start; }
+.op-crgrp--left { left: 640px; top: 150px; align-items: flex-start; }
+.op-crgrp--right { right: 110px; top: 330px; align-items: flex-end; animation-delay: -2.5s; }
+
+.op-cr {
+  display: flex;
+  gap: 4px;
+  height: 66px;
+  white-space: nowrap;
+}
+
+.op-cr__role,
+.op-cr__name {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.op-cr__role {
+  padding: 0 22px 0 26px;
+  border-radius: 33px var(--seg-inner) var(--seg-inner) 33px;
+  background: var(--teal);
+  color: var(--on-teal);
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.op-cr__name {
+  gap: 0.8em;
+  padding: 0 30px 0 24px;
+  border-radius: var(--seg-inner) 33px 33px var(--seg-inner);
+  background: rgba(26, 62, 113, 0.95);
+  box-shadow: inset 0 0 0 1.5px rgba(200, 241, 242, 0.18);
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.op-cr.is-solo .op-cr__name { border-radius: 33px; padding-left: 30px; }
+.op-cr__role > span,
+.op-cr__name > span { display: inline-block; }
 
 .op-year {
   position: absolute;
