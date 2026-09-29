@@ -1,6 +1,6 @@
-/* Opening title sequence (~34 s, nine scenes, cut to its music): shape burst
+/* Opening title sequence (~49 s, nine scenes, cut to its music): shape burst
    -> "SINCE 1907" -> campus at sunset (credits) -> day/night time-lapse ->
-   pagoda close-up (credits) -> name stone close-up -> moon match-cut into the
+   pagoda close-up (credits) -> name stone close-up (credits) -> moon match-cut into the
    emblem -> lockup -> layered reveal. Nothing on screen is ever at rest:
    every element either runs a scripted move or an idle loop. */
 
@@ -285,63 +285,108 @@
 
 .op-caption .cz-spark { --size: 22px; color: var(--teal); animation: op-spin 6s linear infinite; }
 
-/* Production credits: small connected straps, [role | name], stacked in a
-   column that drifts. Sunset: top left; pagoda: in the sky between the
-   moon and the tower, and right of the tower. */
+/* Production credits: a group of straps in the package's style and its
+   light scheme per scene, [logo badge] then rows of [teal role][white name
+   card], each in the emptiest part of its shot. */
 .op-credits { position: absolute; inset: 0; pointer-events: none; }
 
-.op-crgrp {
+.op-csg {
+  --h: 96px;
+  --badge: 96px;
   position: absolute;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  filter: var(--elev-2);          /* on the group: the rows' clip would cut it */
-  animation: op-drift-y 5s ease-in-out infinite alternate;
+  align-items: flex-start;
+  gap: 10px;
+  filter: var(--elev-2);
 }
 
-.op-crgrp--top { left: 120px; top: 118px; align-items: flex-start; }
-.op-crgrp--left { left: 640px; top: 150px; align-items: flex-start; }
-.op-crgrp--right { right: 110px; top: 330px; align-items: flex-end; animation-delay: -2.5s; }
+.op-csg--sunset { left: 110px; top: 80px; }
+.op-csg--pagoda { left: 1300px; top: 170px; }
+.op-csg--stone { left: 110px; bottom: 56px; }
 
-.op-cr {
+.op-cs__rows {
   display: flex;
-  gap: 4px;
-  height: 66px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Along the water the rows run side by side. */
+.op-csg--stone .op-cs__rows { flex-direction: row; gap: 16px; }
+
+.op-cs__row {
+  display: flex;
+  height: var(--h);
+}
+
+.op-cs__kicker {
+  position: relative;
+  flex: none;
+  width: 0;
+  height: var(--h);
+  overflow: hidden;
+  border-radius: var(--seg-inner);
+  background: var(--teal);
+  color: var(--on-teal);
+}
+
+.op-cs__kin {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  align-items: center;
+  padding: 0 26px;
   white-space: nowrap;
 }
 
-.op-cr__role,
-.op-cr__name {
+.op-cs__role {
+  display: inline-block;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.op-cs__card {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: var(--h);
+  overflow: hidden;
+  border-radius: var(--seg-inner) 32px 32px var(--seg-inner);
+  background: var(--surface);
+  color: var(--navy-ink);
+}
+
+/* A large, quiet shape peeking out of the card end, as on the name strap. */
+.op-cs__deco {
+  position: absolute;
+  top: -18px;
+  right: -70px;
+  width: 132px;
+  height: 132px;
+  background: #dde7f6;
+  clip-path: var(--shape-cookie9);
+}
+
+.op-cs__inner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   align-items: center;
-  overflow: hidden;
+  padding: 0 72px 0 30px;
+  white-space: nowrap;
 }
 
-.op-cr__role {
-  padding: 0 22px 0 26px;
-  border-radius: 33px var(--seg-inner) var(--seg-inner) 33px;
-  background: var(--teal);
-  color: var(--on-teal);
-  font-size: 23px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
+.op-cs__line { overflow: hidden; }
 
-.op-cr__name {
-  gap: 0.8em;
-  padding: 0 30px 0 24px;
-  border-radius: var(--seg-inner) 33px 33px var(--seg-inner);
-  background: rgba(26, 62, 113, 0.95);
-  box-shadow: inset 0 0 0 1.5px rgba(200, 241, 242, 0.18);
-  color: #ffffff;
-  font-size: 32px;
+.op-cs__name {
+  display: inline-block;
+  font-size: 44px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
 }
-
-.op-cr.is-solo .op-cr__name { border-radius: 33px; padding-left: 30px; }
-.op-cr__role > span,
-.op-cr__name > span { display: inline-block; }
 
 .op-year {
   position: absolute;

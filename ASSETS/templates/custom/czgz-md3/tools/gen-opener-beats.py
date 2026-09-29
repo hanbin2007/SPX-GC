@@ -1,15 +1,17 @@
-"""Prepares background music for CZ_OPENER and prints its beat grid.
+"""Prepares background music for CZ_OPENER and prints its beat map.
 
   python3 tools/gen-opener-beats.py <music or video file>
-  python3 tools/gen-opener-beats.py --grid      (grid of the committed file only)
+  python3 tools/gen-opener-beats.py --grid      (beat map of the committed file only)
 
 Trims the silent head and tail, writes media/opener-bgm.ogg (Opus, 160 kbit/s)
-and prints BEAT0 and BEAT (ms) to paste into gfx/opener.js: beat n is at
-BEAT0 + n * BEAT from the first note. The grid is fitted to the kick drum
-onsets rather than taken from a generic beat tracker, which can lock onto
-the off-beats. It also prints each beat's kick strength and bass level, to
-find the phrases, drop-outs and big hits the scene cues in opener.js refer
-to by beat number; with a different piece of music re-check those numbers.
+and prints BEATS, the time of every beat in ms from the first note, to paste
+into gfx/opener.js. The beats follow the music's tempo even if it drifts: a
+tight beat tracker gives the spacing, then the whole map is shifted so the
+kick drum lands on the beats (generic trackers often lock onto the
+off-beats). It also prints each beat's kick strength, bass level and a
+section-change score, to find the phrases, drop-outs and big hits the scene
+cues in opener.js refer to by beat number; with a different piece of music
+re-check those numbers.
 Needs ffmpeg (on PATH, or the imageio-ffmpeg package) and librosa.
 """
 import os, shutil, subprocess, sys, tempfile
@@ -49,46 +51,73 @@ def grid():
     hop = 128
     spec = np.abs(librosa.stft(y, n_fft=2048, hop_length=hop))
     freqs = librosa.fft_frequencies(sr=sr, n_fft=2048)
-    t = librosa.frames_to_time(np.arange(spec.shape[1]), sr=sr, hop_length=hop)
+    t = librosa.frames_to_time(np.arange(spec.shape[1]), sr=sr, hop_length=hop) * 1000
 
     def flux(lo, hi):
         db = librosa.amplitude_to_db(spec[(freqs >= lo) & (freqs < hi)], ref=np.max)
         d = np.r_[0, np.maximum(0, np.diff(db, axis=1)).mean(0)]
-        return d / d.max()
+        return d / d.max() if d.max() > 0 else d
+
+    def peak(arr, c, w=30):
+        m = (t >= c - w) & (t < c + w)
+        return float(arr[m].max()) if m.any() else 0.0
 
     kick = flux(20, 150)
     bass = spec[(freqs >= 30) & (freqs < 250)].sum(0)
     bass /= bass.max()
-    peaks = librosa.util.peak_pick(kick, pre_max=20, post_max=20, pre_avg=40, post_avg=40, delta=0.12, wait=25)
-    strong = [librosa.frames_to_time(p, sr=sr, hop_length=hop) * 1000 for p in peaks if kick[p] >= 0.4]
-    if len(strong) < 4:
-        sys.exit("Too few clear kick drum hits to fit a grid; set BEAT0 and BEAT by hand.")
-    tempo = float(np.atleast_1d(librosa.beat.beat_track(y=y, sr=sr)[0])[0])
-    # The tracker can report half or double tempo; fold it into 90-180 BPM.
-    while tempo < 90:
+    env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
+    tempo_fn = getattr(librosa.feature, "tempo", None) or librosa.beat.tempo   # librosa < 0.10
+    tempo = float(np.atleast_1d(tempo_fn(onset_envelope=env, sr=sr, hop_length=hop))[0])
+    while tempo < 90:           # the estimate can be half or double tempo
         tempo *= 2
     while tempo > 180:
         tempo /= 2
-    k = np.array(strong)
-    best = None
-    for period in np.arange(60000 / (tempo * 1.03), 60000 / (tempo * 0.97), 0.1):
-        for phase in np.arange(0, period, 1.0):
-            r = (k - phase) / period
-            cost = np.sum(np.minimum(np.abs(r - np.round(r)) * period, 60))
-            if best is None or cost < best[0]:
-                best = (cost, period, phase)
-    _, period, phase = best
-    print(f"// {60000 / period:.2f} BPM, grid fitted to {len(k)} kicks")
-    print(f"const BEAT0 = {phase:.0f};\nconst BEAT = {period:.1f};")
-    print("// beat   ms  kick  bass")
-    n = 0
-    while phase + n * period < t[-1] * 1000:
-        c = (phase + n * period) / 1000
-        near = (t >= c - 0.05) & (t < c + 0.05)
-        span = (t >= c) & (t < c + period / 1000)
-        kv, bv = kick[near].max(), bass[span].mean()
-        print(f"// {n:3d} {c * 1000:6.0f}  {kv:.2f}  {bv:.2f}  " + "K" * int(kv * 10) + ("   (bass drops out)" if bv < 0.06 else ""))
-        n += 1
+    _, frames = librosa.beat.beat_track(onset_envelope=env, sr=sr, hop_length=hop, start_bpm=tempo, tightness=6400, trim=False)
+    beats = librosa.frames_to_time(frames, sr=sr, hop_length=hop) * 1000
+    if len(beats) < 8:
+        sys.exit("Could not find a steady beat; write BEATS by hand.")
+    step = np.r_[np.diff(beats), np.diff(beats)[-1]]
+    # Shift the map (by a fraction of each beat) so the kicks land on it.
+    if kick.max() > 0:
+        shift = max(np.arange(-0.5, 0.5, 0.01), key=lambda f: sum(peak(kick, c) for c in beats + f * step))
+    else:
+        shift = 0.0
+        print("// no kick drum found: beats are the tracker's, check they are not on the off-beats")
+    beats = beats + shift * step
+    while beats[0] - step[0] >= 0:
+        beats = np.r_[beats[0] - step[0], beats]
+        step = np.r_[step[0], step]
+    keep = (beats >= 0) & (beats <= len(y) / sr * 1000)   # only beats inside the audio
+    beats, step = beats[keep], step[keep]
+    # Section-change score: novelty of timbre and harmony around each beat.
+    hop2 = 512
+    feats = np.vstack([librosa.util.normalize(librosa.feature.mfcc(y=y, sr=sr, hop_length=hop2, n_mfcc=13), axis=1),
+                       librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop2)])
+    rec = librosa.segment.recurrence_matrix(feats, mode="affinity", sym=True, width=3)
+    k = 16
+    # Checkerboard: +1 within each side, -1 across, so a boundary scores high.
+    kernel = np.outer(np.r_[-np.ones(k), np.ones(k)], np.r_[-np.ones(k), np.ones(k)])
+    padded = np.pad(rec, k)
+    nov = np.array([(padded[i:i + 2 * k, i:i + 2 * k] * kernel).sum() for i in range(rec.shape[0])])
+    nov = np.maximum(nov, 0) / max(nov.max(), 1e-9)
+    tn = librosa.frames_to_time(np.arange(len(nov)), sr=sr, hop_length=hop2) * 1000
+
+    ms = np.round(beats).astype(int)
+    print(f"// about {60000 / np.median(np.diff(beats)):.1f} BPM, {len(ms)} beats, kick shift {shift:+.2f} beat")
+    rows = [", ".join(str(v) for v in ms[i:i + 10]) for i in range(0, len(ms), 10)]
+    print("const BEATS = [\n  " + ",\n  ".join(rows) + "\n];")
+    score = []
+    for c in beats:
+        near = (tn >= c - 240) & (tn < c + 240)
+        score.append(float(nov[near].max()) if near.any() else 0.0)
+    print("// beat    ms  kick  bass  section")
+    for n, c in enumerate(beats):
+        span = (t >= c) & (t < c + step[min(n, len(step) - 1)])
+        kv, bv, nv = peak(kick, c), float(bass[span].mean()) if span.any() else 0.0, score[n]
+        # A section change is a local peak of the score (within two beats).
+        top = nv > 0.6 and nv == max(score[max(0, n - 2):n + 3])
+        notes = ("   (bass drops out)" if bv < 0.06 else "") + ("   << section change" if top else "")
+        print(f"// {n:3d} {c:6.0f}  {kv:.2f}  {bv:.2f}  {nv:.2f}  " + "K" * int(kv * 10) + notes)
 
 
 def main(args):
