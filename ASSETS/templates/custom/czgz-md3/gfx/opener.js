@@ -1,29 +1,34 @@
-/* Opening title sequence, about 28 s in nine scenes. Nothing on screen is
-   ever at rest: every element runs either a scripted move or an idle loop.
-   Every scene change is a large, continuous transition.
+/* Opening title sequence, about 34 s in nine scenes, cut to its music
+   (122 BPM; times below are music time). Nothing on screen is ever at rest:
+   every element runs either a scripted move or an idle loop. Every scene
+   change is a short continuous transition landing on a phrase of the music.
 
-   S1  0.0  M3 shape morph burst over the dark campus photo
-       -> rotating cookie iris with a soft-teal rim
-   S2  1.3  "SINCE 1907": four wheels spin and stop one by one on 1907,
+   S1  0.0  M3 shape morph burst on the intro's five pickup notes
+       -> rotating cookie iris with a soft-teal rim, on the first big hit
+   S2  2.0  "SINCE 1907": four wheels spin and stop one per beat on 1907,
             calligraphy name and English name under it
        -> the camera flies through the "0": the scene zooms past while a
           cookie hole with teal and soft-teal rims opens onto the campus
-   S3  4.3  campus at sunset: buildings rise, pagoda stacks up, trees pop
-            and sway, flags wave, night falls, windows light up
-       -> tile wave: a grid of M3 shapes sweeps diagonally across
-   S4  7.8  day/night time-lapse, two full days while the odometer rolls
+   S3  5.9  campus at sunset over the build-up: buildings rise one per beat,
+            pagoda stacks up, trees pop, flags wave, night falls, windows
+            light up; production credits come in top left
+       -> tile wave: a grid of M3 shapes covers the frame on the drop
+   S4  9.9  day/night time-lapse, a full day while the odometer rolls
             1907 to this year ("建校 N 年")
        -> doors with rounded edges close and open again
-   S5 11.5  pagoda close-up: lamps light tier by tier, the spire flashes
+   S5 13.8  pagoda close-up: lamps light tier by tier, the spire flashes;
+            more credits either side of the tower
        -> curtain: capsules drop through the frame
-   S6 14.8  name-stone close-up: the calligraphy is carved, English caption
+   S6 17.7  name-stone close-up: the calligraphy is carved; after the bass
+            drops out the English caption lands on the hit
        -> crane up to the moon, it waxes full; the camera warps into it and
           the moon flies to the centre to become the emblem's disc
-   S7 20.4  shockwave, decoration flies in, the emblem builds
+   S7 24.1  on the next hit: shockwave, decoration flies in, emblem builds
        -> the mark slides left, two capsule bands sweep and retract
-   S8 22.7  lockup: calligraphy name, English name, wavy rule, title letter
-            by letter, subtitle, anniversary chip
-   S9 26.6  layered reveal onto the programme (or hold, still alive) */
+   S8 28.0  lockup: calligraphy name, English name, wavy rule, title letter
+            by letter, subtitle, anniversary chip; breathes on the kicks,
+            draws in over the two silent beats
+   S9 33.9  final hit: layered reveal onto the programme (or hold) */
 (function () {
   "use strict";
 
@@ -47,6 +52,8 @@
     stoneWord: $("stoneWord"),
     carve: $("carve"),
     caption: $("caption"),
+    credits: $("credits"),
+    crGroups: [$("crTop"), $("crLeft"), $("crRight")],
     year: $("year"),
     yearLabel: $("yearLabel"),
     yearDigits: $("yearDigits"),
@@ -242,6 +249,10 @@
   let hasTitle = true;
   let lockedUp = false;       // the mark has moved to the lockup position
   let titleChars = [];
+  let titleShown = false;     // the title letters have risen this take
+  let creditRows = [[], [], []];   // per group: { row, texts, right }
+  let creditText = null;          // what the rows were built from
+  let creditNext = "";            // latest field value; built at the next play
 
   function at(ms, fn) {
     const t = token;
@@ -348,40 +359,39 @@
 
   /* ---------------- Cues ---------------- */
 
-  // The sequence is cut to its music (media/opener-bgm.ogg, 123 BPM). BEATS
-  // are the beat times in ms from the first note, found with
-  // tools/gen-opener-beats.py; every scene change lands on a section change
-  // of the music and the accents inside the scenes land on beats.
-  const BEATS = [
-    232, 778, 1289, 1776, 2276, 2763, 3262, 3750, 4249, 4737,
-    5236, 5735, 6235, 6711, 7210, 7709, 8197, 8696, 9183, 9683,
-    10182, 10658, 11146, 11645, 12132, 12608, 13108, 13595, 14095, 14582,
-    15081, 15569, 16057, 16556, 17055, 17543, 18030, 18518, 19017, 19493,
-    19981, 20480, 20979, 21467, 21954, 22442, 22941, 23429, 23917, 24404,
-    24903, 25391, 25890, 26366, 26865, 27365, 27852, 28328, 28828, 29327,
-    29814, 30302, 30790, 31266, 31672, 32102, 32520, 32996, 33483, 33971,
-    34447, 34934
-  ];
-  const b = (i) => BEATS[i];
-  const STEP = 122;                     // a sixteenth note
+  // The sequence is cut to its music (media/opener-bgm.ogg, 122 BPM). Its
+  // kicks sit on a steady grid, fitted by tools/gen-opener-beats.py: beat n
+  // is at BEAT0 + n * BEAT ms from the first note. The music runs in
+  // eight-beat phrases starting on beats 4, 12, 20, ... 68; the big hits are
+  // beat 4, beat 20 (the drop), beats 41 and 49 (each after the bass drops
+  // out) and the final hit on beat 69 (after two silent beats).
+  const BEAT0 = 20;
+  const BEAT = 491.5;
+  const b = (n) => Math.round(BEAT0 + BEAT * n);
+  const STEP = BEAT / 4;                // a sixteenth note
+  // Wipes: how long each takes to cover the frame, so it covers on the beat.
+  const COVER = { tiles: 620, doors: 460, curtain: 640 };
   const T = {
-    s2: b(2), s2Label: b(3), s2Stops: [b(4), b(5), b(6), b(7)], s2Word: b(8), s2En: b(9),
-    s3: b(10) - 120, firstLight: b(15),
-    s4Cover: b(18), yearIn: b(19), roll0: b(22), roll1: b(26), label: b(26), yearOut: b(29),
-    lapse: b(18), cruise: b(19), brake: b(25), stop: b(28),
-    s5Cover: b(30), lamps: b(32), glint: b(36),
-    s6Cover: b(38), carve: b(39), captionIn: b(41),
-    crane: b(44), wax: b(45), warp: b(47), arrive: b(50),
-    build: [b(51), b(52), b(53), b(54), b(55)],   // teal, navy, letters, seal, sheen
-    lockup: b(58), sweep: b(58),
-    accents: [b(61), b(65), b(66)],
+    s2: b(4), s2Label: b(5), s2Stops: [b(6), b(7), b(8), b(9)], s2Word: b(10), s2En: b(11),
+    s3: b(12) - 120, firstLight: b(16),
+    s4Cover: b(20), yearIn: b(20.5), roll0: b(22), roll1: b(25), label: b(25), yearOut: b(27),
+    lapse: b(20), cruise: b(21), brake: b(24.5), stop: b(27),
+    s5Cover: b(28), lamps: b(30), glint: b(33),
+    s6Cover: b(36), carve: b(37), captionIn: b(41),
+    crane: b(45), wax: b(45.5), warp: b(47), arrive: b(49),
+    build: [b(50), b(51), b(52), b(53), b(54)],   // teal, navy, letters, seal, sheen
+    lockup: b(57), sweep: b(57),
+    accents: [b(60), b(63), b(65), b(66)],
+    inhale: b(67),                       // the two silent beats before the end
     finalHit: b(69),
     end: b(69) - 220                     // the hole bursts open on the final hit
   };
-  T.open = b(10);
-  T.s4 = T.s4Cover - 930;                // the wipes cover the frame on the beat
-  T.s5 = T.s5Cover - 580;
-  T.s6 = T.s6Cover - 830;
+  T.open = b(12);
+  T.s4 = T.s4Cover - COVER.tiles;        // the wipes cover the frame on the beat
+  T.s5 = T.s5Cover - COVER.doors;
+  T.s6 = T.s6Cover - COVER.curtain;
+  // Credits: the rows of each group come in half a beat apart.
+  const CREDIT_CUES = [b(14), b(29), b(31)];
 
   // Camera framings of the campus drawing (the camera scales about 960, 540).
   const CAM = {
@@ -399,8 +409,8 @@
   /* ---------------- Sky clock ---------------- */
 
   // The orbit drifts through sunset in S3, speeds up into a time-lapse of
-  // two full days in S4, then brakes onto night.
-  const ORBIT = { a0: 62, a1: 110, a2: 900 };   // sun angle from the zenith, clockwise
+  // a full day in S4, then brakes onto night.
+  const ORBIT = { a0: 62, a1: 110, a2: 540 };   // sun angle from the zenith, clockwise
   const V0 = (ORBIT.a1 - ORBIT.a0) / (T.lapse - T.open);
   const UP = T.cruise - T.lapse;
   const DOWN = T.stop - T.brake;
@@ -556,28 +566,28 @@
 
   function tileWipe(onCovered) {
     TILES.forEach((t) => {
-      at(t.d * 45, () => to(t.el, { transform: "scale(1) rotate(0deg)" }, { m: M.dec(420) }));
-      at(950 + t.d * 45, () => to(t.el, { transform: "scale(0) rotate(90deg)" }, { m: M.acc(380) }));
+      at(t.d * 30, () => to(t.el, { transform: "scale(1) rotate(0deg)" }, { m: M.dec(340) }));
+      at(COVER.tiles + 40 + t.d * 30, () => to(t.el, { transform: "scale(0) rotate(90deg)" }, { m: M.acc(320) }));
     });
-    at(930, onCovered);
+    at(COVER.tiles, onCovered);
   }
 
   function doorWipe(onCovered) {
-    to(el.doorL, { transform: "translateX(0px)" }, { m: M.inout(560) });
-    to(el.doorR, { transform: "translateX(0px)" }, { m: M.inout(560) });
-    at(580, onCovered);
-    at(700, () => {
-      to(el.doorL, { transform: "translateX(-1060px)" }, { m: M.inout(640) });
-      to(el.doorR, { transform: "translateX(1060px)" }, { m: M.inout(640) });
+    to(el.doorL, { transform: "translateX(0px)" }, { m: M.inout(COVER.doors - 20) });
+    to(el.doorR, { transform: "translateX(0px)" }, { m: M.inout(COVER.doors - 20) });
+    at(COVER.doors, onCovered);
+    at(COVER.doors + 80, () => {
+      to(el.doorL, { transform: "translateX(-1060px)" }, { m: M.inout(520) });
+      to(el.doorR, { transform: "translateX(1060px)" }, { m: M.inout(520) });
     });
   }
 
   function curtainWipe(onCovered) {
     PILLS.forEach((p, i) => {
-      at(i * 55, () => to(p, { transform: "translateY(0px)" }, { m: M.dec(480) }));
-      at(860 + i * 55, () => to(p, { transform: "translateY(1900px)" }, { m: M.acc(460) }));
+      at(i * 40, () => to(p, { transform: "translateY(0px)" }, { m: M.dec(400) }));
+      at(COVER.curtain + 40 + i * 40, () => to(p, { transform: "translateY(1900px)" }, { m: M.acc(400) }));
     });
-    at(830, onCovered);
+    at(COVER.curtain, onCovered);
   }
 
   /* ---------------- Poses ---------------- */
@@ -592,11 +602,86 @@
     titleChars.forEach((c) => set(c, { transform: "translateY(0.7em)", opacity: "0" }));
   }
 
+  /* Credits: "职务 | 姓名" per line, several names split by spaces. Up to nine
+     lines, shared out in order over three groups (sunset top left, then the
+     pagoda scene between the moon and the tower, and right of the tower), so
+     each group holds at most three. */
+  const CREDIT_WIDTH = [1100, 480, 380];   // row width budget per group, px
+  const CR_HIDDEN = "inset(0% 100% 0% 0% round 33px)";
+  const CR_HIDDEN_R = "inset(0% 0% 0% 100% round 33px)";
+  const CR_SHOWN = "inset(0% 0% 0% 0% round 33px)";
+  function parseCredits(text) {
+    return String(text || "").split(/\r?\n/).map((line) => {
+      const m = line.match(/^([^|｜]*)[|｜](.*)$/);
+      const role = (m ? m[1] : "").trim();
+      const names = (m ? m[2] : line).trim().split(/[\s、，,/|｜]+/).filter(Boolean);
+      return { role, names };
+    }).filter((c) => c.names.length).slice(0, 9);
+  }
+
+  function buildCredits(list) {
+    const counts = [0, 1, 2].map((g) => Math.floor(list.length / 3) + (g < list.length % 3 ? 1 : 0));
+    let k = 0;
+    creditRows = el.crGroups.map((group, g) => {
+      group.textContent = "";
+      return list.slice(k, (k += counts[g])).map((c) => {
+        const row = document.createElement("div");
+        row.className = "op-cr";
+        const texts = [];
+        if (c.role) {
+          const role = document.createElement("div");
+          role.className = "op-cr__role";
+          role.innerHTML = "<span></span>";
+          role.firstChild.textContent = c.role;
+          texts.push(role.firstChild);
+          row.appendChild(role);
+        } else row.classList.add("is-solo");
+        const name = document.createElement("div");
+        name.className = "op-cr__name";
+        c.names.forEach((n) => {
+          const span = document.createElement("span");
+          span.textContent = n;
+          texts.push(span);
+          name.appendChild(span);
+        });
+        row.appendChild(name);
+        group.appendChild(row);
+        // Beside the tower a whole row has to fit its column.
+        window.CZ.fit(name, CREDIT_WIDTH[g] - (row.firstChild === name ? 0 : row.firstChild.offsetWidth + 4), 32, 20);
+        return { row, texts, right: g === 2 };
+      });
+    });
+  }
+
+  function poseCredits() {
+    creditRows.flat().forEach((c) => {
+      c.row.getAnimations().forEach((a) => a.cancel());
+      set(c.row, { clipPath: c.right ? CR_HIDDEN_R : CR_HIDDEN, transform: `translateX(${c.right ? 40 : -40}px)`, opacity: "1" });
+      c.texts.forEach((t) => set(t, { transform: "translateY(0.9em)", opacity: "0" }));
+    });
+  }
+
+  // A row slides in as its segments unroll, then its words rise.
+  function showCredit(c) {
+    to(c.row, { clipPath: CR_SHOWN }, { m: M.dec(460) });
+    to(c.row, { transform: "translateX(0px)" }, { m: "ss" });
+    c.texts.forEach((t, i) => {
+      to(t, { transform: "translateY(0em)" }, { m: "sf", delay: 90 + i * 50 });
+      to(t, { opacity: "1" }, { m: "ef", delay: 90 + i * 50 });
+    });
+  }
+
+  // The wipe covering the frame takes the group away with the scene.
+  function hideCredits(g) {
+    creditRows[g].forEach((c) => set(c.row, { opacity: "0" }));
+  }
+
   function poseOff() {
     clearTimeline();
     running = false;
     if (bgm && !bgm.paused) fadeMusic(250);
     lockedUp = false;
+    titleShown = false;
     el.op.classList.remove("is-live");
     act("s1");
     el.op.style.clipPath = HIDDEN;
@@ -642,6 +727,7 @@
     set(el.stoneWord, { clipPath: "inset(0% 100% 0% 0%)" });
     set(el.carve, { transform: "translateX(0px)", opacity: "0" });
     set(el.caption, { transform: "translateY(24px)", opacity: "0", letterSpacing: "0.2em" });
+    poseCredits();
     set(el.year, { transform: "translateY(30px)", opacity: "0" });
     yearOdo.value(1907);
     snap(el.yearLabel, "SINCE");
@@ -671,6 +757,7 @@
     seal.forEach((n) => set(n, { transform: "translateY(12px)", opacity: "0" }));
     set(sheen, { transform: "rotate(20deg) translateX(0px)" });
     set(el.lockup, { transform: "translateY(0px)", opacity: "1" });
+    set(el.credits, { opacity: "1" });
     set(el.word, { clipPath: "inset(0% 100% 0% 0%)" });
     set(el.en, { transform: "translateY(18px)", opacity: "0" });
     set(el.rule, { width: "0px" });
@@ -692,6 +779,11 @@
   /* ---------------- The sequence ---------------- */
 
   function play() {
+    // Credits edited while on air are rebuilt here, not under running cues.
+    if (creditNext !== creditText) {
+      creditText = creditNext;
+      buildCredits(parseCredits(creditText));
+    }
     poseOff();
     running = true;
     const tk = token;
@@ -718,30 +810,33 @@
     to(el.motes, { opacity: "1" }, { m: M.std(900) });
 
     to(el.seed, { transform: "scale(1) rotate(0deg)" }, { m: "sf", delay: 80 });
-    SEED_SHAPES.forEach((s, i) => cue([0, b(0), 505, b(1), 1034][i], () => {
+    // The intro's five pickup notes, then the first big hit opens S2.
+    const PICKUPS = [110, 360, 726, 1225, 1718];
+    SEED_SHAPES.forEach((s, i) => cue(PICKUPS[i], () => {
       to(el.seedShape, { clipPath: shape(s) }, { m: "sf" });
       to(el.seedShape, { backgroundColor: SEED_COLORS[i] }, { m: "ef" });
       pulse(el.seed, [{ transform: "scale(1)" }, { transform: "scale(1.18) rotate(20deg)" }, { transform: "scale(1)" }], { duration: 260, easing: "cubic-bezier(0.2,0,0,1)", composite: "add" });
     }));
     // Each property gets one animation at a time, so follow-ups are scheduled.
     el.rays.forEach((r, i) => {
-      cue(b(0) + i * 20, () => {
+      cue(PICKUPS[2] + i * 20, () => {
         to(r, { opacity: "1" }, { m: "ef" });
         to(r, { transform: `rotate(${i * 45 + 22}deg) translateY(-120px) scaleY(1)` }, { m: "sf" });
       });
-      cue(b(1) + i * 20, () => {
+      cue(PICKUPS[3] + i * 20, () => {
         to(r, { opacity: "0" }, { m: M.acc(220) });
         to(r, { transform: `rotate(${i * 45 + 30}deg) translateY(-260px) scaleY(0.3)` }, { m: M.acc(260) });
       });
     });
     el.ripples.forEach((r, i) => {
-      cue([0, b(0), b(1)][i], () => {
+      const ti = PICKUPS[[0, 2, 4][i]];
+      cue(ti, () => {
         to(r, { opacity: "0.9" }, { m: "ef" });
         to(r, { transform: "scale(3.2)" }, { m: M.dec(900) });
       });
-      cue([0, b(0), b(1)][i] + 320, () => to(r, { opacity: "0" }, { m: M.std(600) }));
+      cue(ti + 320, () => to(r, { opacity: "0" }, { m: M.std(600) }));
     });
-    cue(900, () => to(el.seed, { transform: "scale(16) rotate(90deg)" }, { m: M.acc(360) }));
+    cue(T.s2 - 300, () => to(el.seed, { transform: "scale(16) rotate(90deg)" }, { m: M.acc(360) }));
 
     /* S1 -> S2: rotating cookie iris with a soft-teal rim running just ahead */
     const irisTiming = { duration: 1150, easing: M.dec().easing, fill: "forwards" };
@@ -802,21 +897,25 @@
       to(n, { transform: "scale(1) rotate(0deg)" }, { m: "ss" });
       to(n, { opacity: "1" }, { m: "es" });
     }));
-    S.far.forEach((n, i) => cue(b(10) + i * STEP, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
-    S.blds.forEach((n, i) => cue(b(11 + i), () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
-    S.tiers.forEach((n, i) => cue(b(12) + i * STEP, () => {
+    S.far.forEach((n, i) => cue(b(12) + i * STEP, () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
+    S.blds.forEach((n, i) => cue(b(13 + i), () => to(n, { transform: "translateY(0px)" }, { m: "ss" })));
+    S.tiers.forEach((n, i) => cue(b(14) + i * STEP, () => {
       to(n, { transform: "translateY(0px) scale(1)" }, { m: "sf" });
       to(n, { opacity: "1" }, { m: "ef" });
     }));
-    S.flags.forEach((n, i) => cue(b(14) + i * STEP / 2, () => to(n, { transform: "scaleY(1)" }, { m: "sf" })));
-    S.trees.forEach((n, i) => cue(b(14) + i * STEP, () => to(n, { transform: "scale(1)" }, { m: "sf" })));
-    cue(b(15), () => S.stone.forEach((n) => {
+    S.flags.forEach((n, i) => cue(b(16) + i * STEP / 2, () => to(n, { transform: "scaleY(1)" }, { m: "sf" })));
+    S.trees.forEach((n, i) => cue(b(16) + i * STEP, () => to(n, { transform: "scale(1)" }, { m: "sf" })));
+    cue(b(17), () => S.stone.forEach((n) => {
       to(n, { transform: "translateY(0px)" }, { m: "sd" });
       to(n, { opacity: "1" }, { m: "ed" });
     }));
 
+    // Credits, top left over the sunset sky.
+    creditRows[0].forEach((c, i) => cue(CREDIT_CUES[0] + i * BEAT / 2, () => showCredit(c)));
+
     /* S3 -> S4: tile wave */
     cue(T.s4, () => tileWipe(() => {
+      hideCredits(0);
       set(el.cam, { transform: CAM.s4From });
       to(el.cam, { transform: CAM.s4To }, { m: lin(T.s5Cover - T.s4Cover) });
     }));
@@ -848,6 +947,8 @@
     PAGODA.forEach((wins, i) => cue(T.lamps + i * STEP, () => wins.forEach((w, k) => {
       w.style.fill = (i + k) % 3 === 0 ? "#c8f1f2" : "#ffe3a3";
     })));
+    // Credits either side of the tower: left column, then right.
+    [1, 2].forEach((g) => creditRows[g].forEach((c, i) => cue(CREDIT_CUES[g] + i * BEAT / 2, () => showCredit(c))));
     cue(T.glint, () => {
       to(S.glint, { opacity: "1" }, { m: M.std(300) });
       pulse(S.glint, [{ transform: "scale(0.2)" }, { transform: "scale(1.6)" }, { transform: "scale(1)" }], { duration: 600, easing: "cubic-bezier(0.2,0,0,1)" });
@@ -855,6 +956,8 @@
 
     /* S5 -> S6: curtain */
     cue(T.s6, () => curtainWipe(() => {
+      hideCredits(1);
+      hideCredits(2);
       set(S.glint, { opacity: "0" });
       set(el.cam, { transform: CAM.stoneFrom });
       to(el.cam, { transform: CAM.stoneTo }, { m: lin(T.crane - T.s6Cover) });
@@ -945,10 +1048,14 @@
       to(el.en, { opacity: "1" }, { m: "ed" });
     });
     cue(W + 700, () => to(el.rule, { width: "480px" }, { m: M.dec(900) }));
-    titleChars.forEach((c, i) => cue(W + 680 + i * 38, () => {
-      to(c, { transform: "translateY(0em)" }, { m: "sf" });
-      to(c, { opacity: "1" }, { m: "ef" });
-    }));
+    // Letters are looked up when they rise, so an on-air title edit shows.
+    cue(W + 680, () => {
+      titleShown = true;
+      titleChars.forEach((c, i) => {
+        to(c, { transform: "translateY(0em)" }, { m: "sf", delay: i * 38 });
+        to(c, { opacity: "1" }, { m: "ef", delay: i * 38 });
+      });
+    });
     cue(W + 980, () => {
       to(el.sub, { transform: "translateY(0px)" }, { m: "ss" });
       to(el.sub, { opacity: "1" }, { m: "es" });
@@ -956,6 +1063,12 @@
     cue(W + 1180, () => {
       to(el.chip, { transform: "scale(1)" }, { m: "sf" });
       to(el.chip, { opacity: "1" }, { m: "ef" });
+    });
+
+    // Two silent beats before the end: the mark draws in and springs back
+    // on the hit.
+    cue(T.inhale, () => {
+      pulse(el.mark, [{ transform: "scale(1)" }, { transform: "scale(0.96)" }], { duration: T.finalHit - T.inhale, easing: "cubic-bezier(0.3,0,0.8,0.15)", composite: "add" });
     });
 
     // The lockup breathes with the kicks.
@@ -1040,7 +1153,7 @@
     to(el.lockup, { transform: "translateY(-36px)" }, { m: a(380) });
     to(el.mark, { transform: lockedUp ? "translate(-400px, 0px) scale(1.25)" : "translate(0px, 0px) scale(1.6)" }, { m: a(620) });
     to(el.mark, { opacity: "0" }, { m: a(420), delay: 160 });
-    [el.year, el.caption, el.moonDisc, el.sweep, el.sweepSoft, ...el.deco].forEach((n, i) => to(n, { opacity: "0" }, { m: a(260), delay: i * 18 }));
+    [el.year, el.caption, el.credits, el.moonDisc, el.sweep, el.sweepSoft, ...el.deco].forEach((n, i) => to(n, { opacity: "0" }, { m: a(260), delay: i * 18 }));
     revealing = layeredIris([el.op, el.rimTeal, el.rimSoft], cx, 540, { dur: 1050, delay: 100 }).then(() => {
       el.op.classList.remove("is-live");
       running = false;
@@ -1053,7 +1166,7 @@
 
   window.CZ.graphic({
     family: "opener",
-    defaults: { f0: "2026年秋季学期开学典礼", f1: "2026年9月1日 · 学校体育馆", f2: "reveal", f3: "1" },
+    defaults: { f0: "2026年秋季学期开学典礼", f1: "2026年9月1日 · 学校体育馆", f2: "reveal", f3: "1", f4: "" },
     preload: ["./img/wordmark-cn.png", "./img/photo-campus-a.webp", "./img/photo-campus-b.webp", "./img/burst.webp"],
     render(raw) {
       endMode = raw.f2 === "hold" ? "hold" : "reveal";
@@ -1075,7 +1188,13 @@
         span.appendChild(c);
         return c;
       });
-      if (!running) poseTitle();
+      if (!titleShown) poseTitle();
+      creditNext = String(raw.f4 || "");
+      if (!running && creditNext !== creditText) {
+        creditText = creditNext;
+        buildCredits(parseCredits(creditText));
+        poseCredits();
+      }
       el.title.style.display = raw.f0 ? "" : "none";
       window.CZ.fit(snap(el.sub, raw.f1 || ""), 1000, 32, 24);
       const year = new Date().getFullYear();
