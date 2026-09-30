@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  CRYSTAL 晶华新闻 · BUG 台标                        SPX web layer 5
+  Glass emblem + wordmark top left, LIVE / location flags below it,
+  optional clock top right. Flags step aside while FULLSCREEN is on air.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>晶华新闻 · 台标</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <style>
+    .bug-logo {
+      position: absolute;
+      left: var(--nl-safe-x);
+      top: var(--nl-safe-y);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .bug-emblem {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 70%),
+        inset 0 0 0 2px rgb(216 181 102 / 90%),
+        inset 0 0 0 5px rgb(4 20 61 / 45%),
+        0 8px 22px rgb(0 10 40 / 45%);
+      opacity: 0;
+      transform: scale(.7);
+    }
+    .bug-emblem .cr-star {
+      width: 44px;
+      height: 44px;
+      filter: drop-shadow(0 0 6px rgb(255 226 160 / 70%));
+    }
+    .bug-emblem .cr-star.is-twinkle { animation: bug-twinkle 1400ms var(--ease-soft) 1; }
+    @keyframes bug-twinkle {
+      0%   { transform: rotate(0) scale(1); }
+      40%  { transform: rotate(45deg) scale(1.16); filter: drop-shadow(0 0 14px rgb(255 240 200 / 100%)); }
+      100% { transform: rotate(90deg) scale(1); }
+    }
+    .bug-burst {                 /* sits on the emblem centre, outside its clip */
+      position: absolute;
+      left: 38px;
+      top: 50%;
+      width: 240px;
+      height: 240px;
+      margin: -120px 0 0 -120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgb(255 255 255 / 95%) 0%, rgb(255 236 190 / 55%) 16%, rgb(120 180 255 / 18%) 40%, transparent 66%);
+      opacity: 0;
+      transform: scale(.2);
+      pointer-events: none;
+    }
+    .bug-burst::after {        /* horizontal streak */
+      content: "";
+      position: absolute;
+      left: -180px;
+      right: -180px;
+      top: 50%;
+      height: 4px;
+      margin-top: -2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, transparent, rgb(255 244 214 / 90%), transparent);
+    }
+
+    .bug-word {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      clip-path: inset(0 100% 0 0);
+    }
+    .bug-word b {
+      color: #fff;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 42px;
+      letter-spacing: .14em;
+      text-shadow: var(--cr-text-shadow);
+    }
+    .bug-word small {
+      font-family: "NL Latin";
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 16px;
+      letter-spacing: .5em;
+    }
+
+    .bug-flags {
+      position: absolute;
+      left: var(--nl-safe-x);
+      top: calc(var(--nl-safe-y) + 76px + 16px);
+      display: flex;
+      height: 40px;
+      clip-path: inset(0 100% 0 0);
+    }
+    .bug-live {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      border-radius: 3px 0 0 3px;
+      transition: width var(--t-morph) var(--ease-out);
+    }
+    .bug-live .cr-dot { margin-left: 16px; background: radial-gradient(circle at 35% 35%, #fff, #ffe9c4 60%, var(--cr-gold)); box-shadow: 0 0 8px rgb(255 240 200 / 90%); }
+    .bug-live span { padding-right: 16px; white-space: nowrap; }
+    .bug-where { font-size: 22px; font-weight: 500; letter-spacing: .06em; border-radius: 0 3px 3px 0; }
+    .bug-where .nl-swap { height: 40px; line-height: 40px; }
+    .bug-where .nl-swap__item { padding: 0 18px; }
+
+    .bug-clock {
+      position: absolute;
+      right: var(--nl-safe-x);
+      top: var(--nl-safe-y);
+      display: flex;
+      align-items: center;
+      height: 46px;
+      padding: 0 20px;
+      border-radius: 4px;
+      font-family: "NL Latin";
+      font-size: 28px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      clip-path: inset(0 0 0 100%);
+    }
+    .bug-clock .nl-swap { height: 46px; line-height: 46px; }
+    .bug-clock .bug-zone { margin-left: 12px; font-family: var(--cr-font); font-size: 16px; font-weight: 500; letter-spacing: .12em; color: #d7e3ff; }
+
+    /* ==== shown ==== */
+    .nl-root[data-show="1"] .bug-emblem { opacity: 1; transform: scale(1); }
+    .nl-root[data-show="1"] .bug-word { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"]:not(.is-hidden-flags) .bug-flags { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"].has-clock .bug-clock { clip-path: inset(0 0 0 0); }
+
+    .nl-root[data-show="1"][data-motion="enter"] .bug-emblem { transition: opacity 280ms linear 80ms, transform 620ms var(--ease-out) 80ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-burst { animation: bug-burst 900ms var(--ease-out) 1 both; }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-word { transition: clip-path 720ms var(--ease-out) 260ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-flags { transition: clip-path 560ms var(--ease-out) 560ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-clock { transition: clip-path 560ms var(--ease-out) 400ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-emblem .cr-glint { animation: cr-glint 1000ms var(--ease-soft) 700ms 1 both; }
+    @keyframes bug-burst {
+      0%   { opacity: 0; transform: scale(.2); }
+      25%  { opacity: 1; }
+      100% { opacity: 0; transform: scale(1.5); }
+    }
+
+    /* on air: flags / clock fold away and back */
+    .nl-root .bug-flags { transition: clip-path var(--t-unfold) var(--ease-move); }
+    .nl-root .bug-clock { transition: clip-path var(--t-unfold) var(--ease-move); }
+
+    /* ==== exit ==== */
+    .nl-root[data-show="0"] .bug-flags { transition: clip-path 280ms var(--ease-in); }
+    .nl-root[data-show="0"] .bug-clock { transition: clip-path 280ms var(--ease-in); }
+    .nl-root[data-show="0"] .bug-word { transition: clip-path 360ms var(--ease-in) 60ms; }
+    .nl-root[data-show="0"] .bug-emblem { transition: opacity 240ms linear 260ms, transform 360ms var(--ease-in) 200ms; }
+  </style>
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "晶华 CRYSTAL 台标 BUG",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "15",
+      webplayout: "5",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "1",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "角标（地点，可留空）", value: "北京" },
+        { field: "f1", ftype: "checkbox", title: "直播标识", value: "1" },
+        { field: "f2", ftype: "checkbox", title: "右上时钟（字幕条已带时钟，默认关闭）", value: "0" },
+        { field: "f3", ftype: "textfield", title: "时钟标签", value: "北京时间" },
+        {
+          field: "f4", ftype: "dropdown", title: "时区", value: "Asia/Shanghai",
+          items: [
+            { text: "北京 / 上海", value: "Asia/Shanghai" },
+            { text: "本机时间", value: "local" },
+            { text: "香港", value: "Asia/Hong_Kong" },
+            { text: "东京", value: "Asia/Tokyo" },
+            { text: "伦敦", value: "Europe/London" },
+            { text: "纽约", value: "America/New_York" },
+            { text: "UTC", value: "UTC" }
+          ]
+        },
+        { ftype: "instruction", value: "常驻图层。全屏图文上屏时直播 / 地点角标自动收起。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root bug" id="root">
+      <div class="bug-logo">
+        <div class="bug-emblem cr-glass">
+          <i class="cr-star" id="star"></i>
+          <i class="cr-glint" id="glint"></i>
+        </div>
+        <i class="bug-burst"></i>
+        <div class="bug-word">
+          <b>晶华新闻</b>
+          <small class="cr-gold-text">CRYSTAL NEWS</small>
+        </div>
+      </div>
+
+      <div class="bug-flags">
+        <div class="bug-live cr-glass cr-glass--red" id="live"><i class="cr-dot"></i><span>直播</span></div>
+        <div class="bug-where cr-glass cr-glass--deep"><span class="nl-swap" id="where"></span></div>
+      </div>
+
+      <div class="bug-clock cr-glass cr-glass--deep">
+        <span class="nl-swap" id="h1"></span><span class="nl-swap" id="h2"></span><span>:</span><span class="nl-swap" id="m1"></span><span class="nl-swap" id="m2"></span>
+        <span class="bug-zone"><span class="nl-swap" id="zone"></span></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const C = window.Crystal;
+      if (!C) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      C.stage($("stage"));
+
+      let zone = "Asia/Shanghai";
+      let live = true;
+      let where = "";
+      let fullscreen = false;
+      let clockTimer = 0;
+      let sparkleTimer = 0;
+
+      function now() {
+        const opts = { hour: "2-digit", minute: "2-digit", hour12: false };
+        if (zone !== "local") opts.timeZone = zone;
+        try { return new Intl.DateTimeFormat("en-GB", opts).format(new Date()).replace(/[^0-9]/g, ""); }
+        catch (e) { return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).replace(/[^0-9]/g, ""); }
+      }
+      function drawClock(animate) {
+        const t = now().padStart(4, "0").slice(-4);
+        ["h1", "h2", "m1", "m2"].forEach((id, i) => C.swap($(id), t[i], { animate }));
+      }
+      function syncFlags() {
+        $("live").style.width = live ? `${$("live").scrollWidth}px` : "0px";
+        root.classList.toggle("is-hidden-flags", (!live && !where) || fullscreen);
+      }
+      function sparkle() {
+        C.retrigger($("star"), "is-twinkle");
+        C.retrigger($("glint"), "is-run");
+      }
+
+      C.define({
+        kind: "bug",
+        root,
+        enterMs: 1800,
+        exitMs: 680,
+        defaults: { f0: "北京", f1: "1", f2: "0", f3: "北京时间", f4: "Asia/Shanghai" },
+        render(d, ctx) {
+          const animate = ctx.animate;
+          zone = C.clean(d.f4) || "local";
+          live = String(d.f1) !== "0";
+          where = C.clean(d.f0);
+          C.swap($("where"), where, { animate });
+          C.swap($("zone"), C.clean(d.f3), { animate });
+          root.classList.toggle("has-clock", String(d.f2) === "1");
+          drawClock(animate);
+          syncFlags();
+        },
+        onEnv(env) { fullscreen = env.fullscreen; syncFlags(); },
+        onShow(shown) {
+          clearInterval(clockTimer);
+          clearInterval(sparkleTimer);
+          if (!shown) return;
+          drawClock(false);
+          clockTimer = setInterval(() => drawClock(true), 1000);
+          sparkleTimer = setInterval(sparkle, 12000);   // the emblem catches the light
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

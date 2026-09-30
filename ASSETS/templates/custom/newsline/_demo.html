@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  NEWSLINE · 预览台
+  Open through the SPX server: http://localhost:5656/templates/custom/newsline/_demo.html
+  Five stacked layer iframes driven exactly like the SPX web renderer:
+  Play = reload the layer + update(json) + play(); Update = update(json);
+  Continue = next(); Stop = stop(). The leading underscore keeps this file
+  out of SPX's template list.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newsline 预览台</title>
+  <link rel="stylesheet" href="./_scene/fonts.css">
+  <style>
+    :root {
+      --bg: #0b0f14; --panel: #121820; --panel-2: #18212b; --line: #243140;
+      --text: #e8eef4; --muted: #8497a8; --signal: #e2242d; --ok: #2fbf71; --warn: #e0a526;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font: 14px/1.5 "NL Latin", "NL CJK", system-ui, sans-serif; }
+    header { display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+    header b { display: inline-block; width: 12px; height: 12px; background: var(--signal); }
+    header h1 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .2em; }
+    header span { color: var(--muted); font-size: 13px; }
+    header .spacer { flex: 1; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; padding: 20px; }
+    @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+
+    .monitor { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #222 center / cover no-repeat; border: 1px solid var(--line); }
+    .monitor.bg-studio { background-image: radial-gradient(1200px 600px at 70% 30%, #4a6275, #1c2a36 70%), none; }
+    .monitor iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+    .caption { min-height: 64px; margin-top: 12px; padding: 12px 16px; background: var(--panel); border-left: 3px solid var(--signal); }
+    .caption small { display: block; color: var(--signal); font-weight: 700; letter-spacing: .12em; }
+    .caption p { margin: 2px 0 0; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+    .toolbar label { color: var(--muted); margin-left: 8px; }
+
+    aside { display: flex; flex-direction: column; gap: 10px; }
+    .card { padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); }
+    .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .card-head h2 { margin: 0; font-size: 14px; font-weight: 700; }
+    .card-head .layer { color: var(--muted); font-size: 12px; }
+    .card-head .state { margin-left: auto; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .card-head .state em { font-style: normal; }
+    .card-head .state i { width: 8px; height: 8px; border-radius: 50%; background: #3a4654; }
+    .card[data-state="on"] .state i { background: var(--signal); box-shadow: 0 0 0 3px rgb(226 36 45 / 25%); }
+    .card[data-state="suspended"] .state i { background: var(--warn); }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; }
+    select, button { font: inherit; color: var(--text); background: var(--panel-2); border: 1px solid var(--line); height: 32px; padding: 0 10px; }
+    select { flex: 1; min-width: 0; margin-bottom: 8px; width: 100%; }
+    button { cursor: pointer; }
+    button:hover { border-color: #3a4d60; }
+    button:focus-visible, select:focus-visible { outline: 2px solid var(--signal); outline-offset: 1px; }
+    button.play { background: #1d3a2a; border-color: #2a5a40; }
+    button.stop { background: #3a1d20; border-color: #5a2a30; }
+    button.primary { background: var(--signal); border-color: var(--signal); color: #fff; font-weight: 700; }
+    button:disabled { opacity: .45; cursor: default; }
+    .scene { font-size: 12px; color: var(--muted); }
+    .scene code { color: var(--text); }
+  </style>
+</head>
+<body>
+  <header>
+    <b></b><h1>NEWSLINE</h1><span>新闻现场 · 包装预览台（模拟 SPX 渲染器：5 个图层）</span>
+    <span class="spacer"></span>
+    <button class="primary" id="auto" type="button">▶ 自动演示 Transition Logic</button>
+    <button id="clearAll" type="button">全部下屏</button>
+  </header>
+
+  <div class="layout">
+    <section>
+      <div class="monitor" id="monitor">
+        <iframe id="layer1" title="Layer 1"></iframe>
+        <iframe id="layer2" title="Layer 2"></iframe>
+        <iframe id="layer3" title="Layer 3"></iframe>
+        <iframe id="layer4" title="Layer 4"></iframe>
+        <iframe id="layer5" title="Layer 5"></iframe>
+      </div>
+      <div class="caption" id="caption"><small>READY</small><p>点击右侧按钮操作各图层，或运行自动演示。</p></div>
+      <div class="toolbar">
+        <label for="bg">背景</label>
+        <select id="bg" style="flex:none;width:auto;margin:0">
+          <option value="/media/images/hd/nature.png">外景画面</option>
+          <option value="/media/images/hd/BluishBlurry.png">虚化演播室</option>
+          <option value="studio">渐变底</option>
+          <option value="none">透明（棋盘格）</option>
+        </select>
+        <span class="scene" id="scene"></span>
+      </div>
+    </section>
+    <aside id="deck"></aside>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    const SAMPLES = {
+      bug: [
+        { label: "直播 · 北京", data: { f0: "北京", f1: "1", f2: "1", f3: "北京时间", f4: "Asia/Shanghai" } },
+        { label: "直播 · 伦敦连线", data: { f0: "伦敦", f1: "1", f2: "1", f3: "伦敦时间", f4: "Europe/London" } },
+        { label: "非直播 · 无角标", data: { f0: "", f1: "0", f2: "1", f3: "北京时间", f4: "Asia/Shanghai" } }
+      ],
+      fullscreen: [
+        { label: "数据要点（3 条）", data: { f0: "数据", f1: "前三季度经济运行总体平稳\n主要指标稳中向好", f2: "国内生产总值同比增长 5.1%，增速保持在合理区间", f3: "规模以上工业增加值增长 5.8%，高技术制造业引领", f4: "社会消费品零售总额增长 4.6%，服务消费较快恢复", f5: "", f6: "", f7: "来源：国家统计局" } },
+        { label: "政策要点（4 条）", data: { f0: "政策", f1: "城市更新行动方案发布", f2: "2027 年底前完成 2000 年底前建成的老旧小区改造", f3: "推进完整社区建设，补齐养老托育等公共服务短板", f4: "新增和改造城市公园绿地，打造 15 分钟生活圈", f5: "建立房屋体检、养老金与保险制度，保障长效运营", f6: "", f7: "来源：住房和城乡建设部" } },
+        { label: "标题卡（无要点）", data: { f0: "特别报道", f1: "潮起浦江\n一座城市的更新之路", f2: "", f3: "", f4: "", f5: "", f6: "", f7: "" } }
+      ],
+      ticker: [
+        { label: "快讯 · 滚动", data: { f0: "国家统计局发布前三季度国民经济运行数据\n多地出台举措支持城市更新与老旧小区改造\n秋粮收获进度过半，主产区天气总体有利\n全国铁路国庆假期累计发送旅客超一亿五千万人次", f1: "快讯", f2: "scroll", f3: "140" } },
+        { label: "突发 · 翻页", data: { f0: "今日 14 时起 G2 京沪高速部分路段实行临时交通管制\n受强降雨影响，京津冀多地发布暴雨蓝色预警\n请广大市民合理安排出行，关注官方发布信息", f1: "突发", f2: "flip", f3: "140" } }
+      ],
+      headline: [
+        { label: "要闻 · 直播", data: { f0: "要闻", f1: "城市更新计划发布，公共空间焕发新活力", f2: "聚焦民生与城市发展", f3: "北京", f4: "直播" } },
+        { label: "经济 · 报道", data: { f0: "经济", f1: "新一轮科技创新成果集中亮相", f2: "多领域协同推动高质量发展", f3: "上海", f4: "报道" } },
+        { label: "突发", data: { f0: "社会", f1: "京津冀多地发布暴雨预警 部分路段临时管制", f2: "", f3: "河北 · 保定", f4: "突发" } },
+        { label: "国际 · 特别报道", data: { f0: "国际", f1: "全球城市论坛聚焦绿色转型与区域合作", f2: "专家探讨可持续发展的新路径", f3: "日内瓦", f4: "特别报道" } }
+      ],
+      name: [
+        { label: "专家", data: { f0: "李明远", f1: "城市规划研究院 总规划师", f2: "专家", f3: "" } },
+        { label: "记者 · 现场", data: { f0: "陈思雨", f1: "本台记者", f2: "记者", f3: "上海 · 浦东" } },
+        { label: "连线嘉宾", data: { f0: "Thomas Keller", f1: "日内瓦城市研究中心 主任", f2: "连线", f3: "日内瓦" } }
+      ]
+    };
+    const DECK = [
+      { kind: "bug", file: "BUG.html", layer: 5, title: "台标 / 时钟" },
+      { kind: "name", file: "NAME.html", layer: 4, title: "人名条" },
+      { kind: "headline", file: "HEADLINE.html", layer: 3, title: "标题条" },
+      { kind: "ticker", file: "TICKER.html", layer: 2, title: "滚动字幕" },
+      { kind: "fullscreen", file: "FULLSCREEN.html", layer: 1, title: "全屏图文", steps: true }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const frame = (layer) => $("layer" + layer);
+    const deck = $("deck");
+    const cards = {};
+
+    /* --- exactly what the SPX renderer does --- */
+    const spx = {
+      play(item, data) {
+        const f = frame(item.layer);
+        return new Promise((resolve) => {
+          f.onload = () => { f.contentWindow.update(JSON.stringify(data)); f.contentWindow.play(); resolve(); };
+          f.src = "./" + item.file + "?random=" + Date.now();
+        });
+      },
+      update(item, data) { const w = frame(item.layer).contentWindow; if (w && w.update) w.update(JSON.stringify(data)); },
+      next(item) { const w = frame(item.layer).contentWindow; if (w && w.next) w.next(); },
+      stop(item) { const w = frame(item.layer).contentWindow; if (w && w.stop) w.stop(); }
+    };
+
+    DECK.forEach((item) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML =
+        `<div class="card-head"><h2>${item.title}</h2><span class="layer">${item.file} · 图层 ${item.layer}</span><span class="state"><i></i><em>待命</em></span></div>` +
+        `<select aria-label="${item.title} 内容">${SAMPLES[item.kind].map((s, i) => `<option value="${i}">${s.label}</option>`).join("")}</select>` +
+        `<div class="row"><button class="play" data-a="play" type="button">Play</button><button data-a="update" type="button">Update</button>` +
+        (item.steps ? `<button data-a="next" type="button">Continue</button>` : "") +
+        `<button class="stop" data-a="stop" type="button">Stop</button></div>`;
+      const select = card.querySelector("select");
+      card.addEventListener("click", (e) => {
+        const a = e.target.dataset && e.target.dataset.a;
+        if (!a) return;
+        const data = SAMPLES[item.kind][select.value].data;
+        if (a === "play") spx.play(item, data);
+        if (a === "update") spx.update(item, data);
+        if (a === "next") spx.next(item);
+        if (a === "stop") spx.stop(item);
+      });
+      deck.appendChild(card);
+      cards[item.kind] = { card, select, item };
+    });
+
+    /* --- live scene monitor --- */
+    setInterval(() => {
+      let reserve = 0, fs = false;
+      DECK.forEach((item) => {
+        const w = frame(item.layer).contentWindow;
+        const c = w && w.__newsline;
+        const { card } = cards[item.kind];
+        const label = card.querySelector(".state em");
+        if (!c || c.kind !== item.kind) { card.dataset.state = "off"; label.textContent = "待命"; return; }
+        if (c.shown) { card.dataset.state = "on"; label.textContent = "播出中"; }
+        else if (c.playing && c.suspended) { card.dataset.state = "suspended"; label.textContent = "已让位（挂起）"; }
+        else if (c.playing) { card.dataset.state = "suspended"; label.textContent = "准备中"; }
+        else { card.dataset.state = "off"; label.textContent = "已下屏"; }
+        reserve = Math.max(reserve, c.env.reserveBottom || 0);
+        fs = fs || c.env.fullscreen;
+      });
+      $("scene").innerHTML = `Scene：底部预留 <code>${reserve}px</code> · 全屏 <code>${fs ? "上屏" : "—"}</code>`;
+    }, 200);
+
+    /* --- background --- */
+    const monitor = $("monitor");
+    function setBg(v) {
+      monitor.classList.toggle("bg-studio", v === "studio");
+      monitor.style.backgroundImage = v === "studio" ? "" :
+        v === "none" ? "repeating-conic-gradient(#2a2f36 0 25%, #1e2227 0 50%)" : `url(${v})`;
+      monitor.style.backgroundSize = v === "none" ? "32px 32px" : "cover";
+    }
+    $("bg").addEventListener("change", (e) => setBg(e.target.value));
+    setBg($("bg").value);
+
+    /* --- scripted walkthrough of every transition-logic rule --- */
+    const caption = (tag, text) => { $("caption").innerHTML = `<small>${tag}</small><p>${text}</p>`; };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const I = (k) => cards[k].item;
+    const S = (k, i) => SAMPLES[k][i].data;
+    let running = false;
+
+    async function clearAll() { DECK.forEach((item) => spx.stop(item)); await sleep(1200); }
+
+    $("clearAll").onclick = () => clearAll();
+    $("auto").onclick = async () => {
+      if (running) return;
+      running = true;
+      $("auto").disabled = true;
+      try {
+        await clearAll();
+        caption("开场", "台标 / 时钟上屏。时钟逐位翻动，左上直播角标跟随。");
+        await spx.play(I("bug"), S("bug", 0)); await sleep(2200);
+
+        caption("入场", "标题条：信号线画出 → 标签从线上升起 → 底板自线向下展开 → 文字浮现。");
+        await spx.play(I("headline"), S("headline", 0)); await sleep(3000);
+
+        caption("MULTI-ITEM · 预留空间", "字幕条上屏：标题条先上移让出空间，字幕条再进入。");
+        await spx.play(I("ticker"), S("ticker", 0)); await sleep(3600);
+
+        caption("SINGLE-ITEM · 原地切换", "播出中 Update：文字上推切换，底板宽度随内容形变，信号线掠过一道光。");
+        spx.update(I("headline"), S("headline", 1)); await sleep(3000);
+
+        caption("SINGLE-ITEM · 状态切换", "切到「突发」：状态标签转红、指示灯闪烁，补充信息行收起。");
+        spx.update(I("headline"), S("headline", 2)); await sleep(3200);
+
+        caption("MULTI-ITEM · 互斥槽位", "人名条上屏：与标题条同属下三分之一，新元素接管，旧元素交接退场。");
+        await spx.play(I("name"), S("name", 0)); await sleep(3200);
+
+        caption("SINGLE-ITEM · 同层接力", "同一图层播出下一个人名（SPX 会重载图层）：画面接力，原地换人而不重新入场。");
+        await spx.play(I("name"), S("name", 1)); await sleep(3200);
+
+        caption("MULTI-ITEM · 挂起", "全屏图文上屏：人名条与直播角标自动让开（SPX 中仍为播出状态）。");
+        await spx.play(I("fullscreen"), S("fullscreen", 0)); await sleep(3200);
+
+        caption("STEP · Continue", "Continue 逐条揭示要点，已播要点退为次要。");
+        spx.next(I("fullscreen")); await sleep(1800);
+        spx.next(I("fullscreen")); await sleep(2600);
+
+        caption("MULTI-ITEM · 恢复", "全屏下屏：擦出的同时，被挂起的人名条与直播角标自动回来。");
+        spx.stop(I("fullscreen")); await sleep(3000);
+
+        caption("MULTI-ITEM · 归还空间", "字幕条下屏：先离开，人名条再平滑回落到基线。");
+        spx.stop(I("ticker")); await sleep(2600);
+
+        caption("收尾", "全部下屏。");
+        await clearAll();
+        caption("完成", "所有规则见 README.md。可在右侧逐个图层手动操作。");
+      } finally {
+        running = false;
+        $("auto").disabled = false;
+      }
+    };
+  })();
+  </script>
+</body>
+</html>

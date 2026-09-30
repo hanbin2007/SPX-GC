@@ -1,0 +1,216 @@
+/* ==========================================================================
+   CRYSTAL · Lower third component (HEADLINE, NAME)
+
+     in    the gold rule draws left→right with a flare riding its tip; the
+           crimson cap and the sapphire bar open behind the flare; text
+           rises in; the white sub bar follows; a glint crosses the glass.
+     out   text dissolves; bars close back to the left; the rule retracts.
+     swap  text dissolves through, widths morph, a glint crosses the glass.
+   ========================================================================== */
+
+.lower-block {
+  position: absolute;
+  left: var(--nl-safe-x);
+  bottom: var(--cr-lower-bottom);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ---- main row: cap + bar, rule along its bottom edge --------------------- */
+.cr-row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: 92px;
+}
+
+.cr-cap,
+.cr-bar,
+.cr-sub { clip-path: inset(0 100% 0 0); }
+
+.cr-cap {
+  display: flex;
+  align-items: center;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  border-radius: 4px 0 0 0;
+}
+.cr-cap .nl-swap__item { padding: 0 26px 0 30px; }
+
+.cr-bar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: 0 4px 0 0;
+}
+.cr-alert {                 /* crimson layer that fades in for breaking news */
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--t-morph) var(--ease-out);
+}
+.cr-bar > .cr-t { position: relative; z-index: 2; }
+
+.cr-title {
+  font-size: 50px;
+  font-weight: 700;
+  line-height: 72px;
+  letter-spacing: .03em;
+}
+
+.cr-rule {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 3px;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+.cr-row > .cr-flare { top: auto; bottom: -1.5px; }
+
+/* ---- sub row --------------------------------------------------------------- */
+.cr-subrow {
+  height: 50px;
+  margin-top: 3px;
+  padding-left: var(--cap-w, 0px);
+  transition: padding-left var(--t-morph) var(--ease-out);
+}
+.cr-sub {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 32px;
+  border-radius: 0 0 4px 4px;
+}
+.cr-subtext {
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 44px;
+  letter-spacing: .03em;
+}
+.cr-sub .cr-sep {
+  flex: none;
+  width: 1px;
+  height: 22px;
+  margin: 0 18px;
+  background: rgb(10 36 89 / 30%);
+  transition: opacity var(--t-morph) var(--ease-out), margin var(--t-morph) var(--ease-out);
+}
+.cr-sub .cr-sep.is-empty { opacity: 0; margin: 0; }
+.cr-sub .is-muted { color: var(--cr-ink-2); }
+.cr-subrow.is-empty { height: 0; }
+
+/* text risers */
+.cr-t { display: block; opacity: 0; transform: translate3d(0, 30%, 0); }
+
+/* ==========================================================================
+   Shown
+   ========================================================================== */
+.nl-root[data-show="1"] .cr-rule { transform: scaleX(1); }
+.nl-root[data-show="1"] .cr-cap,
+.nl-root[data-show="1"] .cr-bar,
+.nl-root[data-show="1"] .cr-sub { clip-path: inset(0 0 0 0); }
+.nl-root[data-show="1"] .cr-t { opacity: 1; transform: translate3d(0, 0, 0); }
+
+/* enter choreography */
+.nl-root[data-show="1"][data-motion="enter"] .cr-rule { transition: transform 600ms var(--ease-out); }
+.nl-root[data-show="1"][data-motion="enter"] .cr-flare { --run-t: 600ms; animation: cr-flare 600ms var(--ease-out) 1 both; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-cap { transition: clip-path 520ms var(--ease-out) 40ms; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-bar { transition: clip-path 640ms var(--ease-out) 100ms; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-cap .cr-t { transition: opacity 360ms linear 260ms, transform 560ms var(--ease-out) 260ms; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-bar .cr-t { transition: opacity 400ms linear 320ms, transform 640ms var(--ease-out) 320ms; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-sub { transition: clip-path 560ms var(--ease-out) 380ms; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-sub .cr-t { transition: opacity 360ms linear 500ms, transform 560ms var(--ease-out) 500ms; }
+.nl-root[data-show="1"][data-motion="enter"] .cr-bar .cr-glint { animation: cr-glint var(--t-glint) var(--ease-soft) 820ms 1 both; }
+
+/* on air: sub line appearing / disappearing */
+.nl-root[data-show="1"][data-motion="idle"] .cr-subrow { transition: height var(--t-morph) var(--ease-out), padding-left var(--t-morph) var(--ease-out); }
+.nl-root[data-show="1"][data-motion="idle"] .cr-subrow.is-empty .cr-sub { clip-path: inset(0 100% 0 0); transition: clip-path 360ms var(--ease-in); }
+.nl-root[data-show="1"][data-motion="idle"] .cr-subrow:not(.is-empty) .cr-sub { transition: clip-path 520ms var(--ease-out); }
+
+/* ==========================================================================
+   Hidden — exit
+   ========================================================================== */
+.nl-root[data-show="0"] .cr-t { transition: opacity 180ms linear, transform 0s linear 600ms; }
+.nl-root[data-show="0"] .cr-sub { transition: clip-path 300ms var(--ease-in); }
+.nl-root[data-show="0"] .cr-bar { transition: clip-path 380ms var(--ease-in) 60ms; }
+.nl-root[data-show="0"] .cr-cap { transition: clip-path 300ms var(--ease-in) 160ms; }
+.nl-root[data-show="0"] .cr-rule { transition: transform 380ms var(--ease-in) 120ms; }
+
+/* ==========================================================================
+   HEADLINE specifics
+   ========================================================================== */
+.lower--headline .cr-row { width: 1728px; }
+.lower--headline .cr-bar { flex: 1; justify-content: space-between; }
+.lower--headline .cr-bar > .cr-t { padding: 0 36px; min-width: 0; }
+
+.cr-badge {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 0 30px 0 26px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+.cr-badge::before {           /* gold hairline divider */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--cr-gold), transparent);
+}
+.cr-badge .cr-dot { display: none; }
+.is-live .cr-badge .cr-dot { display: block; }
+.cr-badge .cr-loc { font-size: 24px; font-weight: 500; letter-spacing: .04em; color: #dfe9ff; }
+.cr-badge .cr-pip {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cr-gold);
+  transition: opacity var(--t-morph);
+}
+.cr-badge .cr-pip.is-empty { opacity: 0; }
+
+/* breaking: the bar turns crimson, the cap turns deep sapphire (cross-fades) */
+.cr-alt {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--t-morph) var(--ease-out);
+}
+.cr-cap > .cr-t { position: relative; z-index: 2; }
+.is-breaking .cr-alert,
+.is-breaking .cr-alt { opacity: 1; }
+.is-breaking .cr-badge .cr-dot { background: radial-gradient(circle at 35% 35%, #fff, #ffe9c4 60%, var(--cr-gold)); box-shadow: 0 0 10px rgb(255 240 200 / 90%); }
+
+/* ==========================================================================
+   NAME specifics
+   ========================================================================== */
+.lower--name .cr-row { height: 86px; }
+.lower--name .cr-cap { font-size: 28px; }
+.lower--name .cr-cap .nl-swap__item { padding: 0 22px 0 26px; }
+.lower--name .cr-bar > .cr-t { padding: 0 44px 0 40px; }
+.lower--name .cr-bar::after {           /* gold accent on the leading edge */
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--cr-gold-hi), var(--cr-gold) 50%, var(--cr-gold-lo));
+}
+.lower--name .cr-title { font-size: 48px; letter-spacing: .08em; }
+.lower--name .cr-subrow { height: 46px; }
+.lower--name .cr-subrow.is-empty { height: 0; }
+.lower--name .cr-subtext { font-size: 26px; }

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  NEWSLINE · FULLSCREEN 全屏图文                      SPX web layer 1
+  While on air, lower thirds (HEADLINE / NAME) step aside and come back
+  when it leaves. Continue reveals the points one by one. Content clears
+  the TICKER band when it is on air. See README.md.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Newsline · 全屏图文</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <style>
+    :root { --t-wipe: 640ms; }
+
+    .fs-canvas {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(1100px 760px at 80% 12%, rgb(33 58 84 / 85%) 0%, transparent 62%),
+        linear-gradient(160deg, #0f1c29 0%, #0a141e 58%, #070d14 100%);
+      clip-path: inset(0 100% 0 0);
+    }
+    .fs-grid {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, rgb(255 255 255 / 3.2%) 0 1px, transparent 1px 160px);
+      background-position: 144px 0;
+    }
+    .fs-glow {
+      position: absolute;
+      left: -420px;
+      bottom: -520px;
+      width: 1300px;
+      height: 1300px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgb(226 36 45 / 16%), transparent);
+      animation: fs-drift 22s ease-in-out infinite alternate;
+      animation-play-state: paused;
+    }
+    .nl-root[data-show="1"] .fs-glow { animation-play-state: running; }
+    @keyframes fs-drift {
+      from { transform: translate3d(0, 0, 0); }
+      to   { transform: translate3d(260px, -120px, 0); }
+    }
+    .fs-edge {
+      position: absolute;
+      z-index: 5;
+      top: 0;
+      bottom: 0;
+      left: -8px;
+      width: 8px;
+      background: var(--nl-signal);
+      opacity: 0;
+    }
+
+    .fs-content {
+      position: absolute;
+      left: 144px;
+      right: 144px;
+      top: 144px;
+    }
+
+    /* kicker: chip + the news line running to the edge */
+    .fs-kicker { display: flex; align-items: flex-end; height: 44px; }
+    .fs-kicker .nl-chip { clip-path: inset(100% 0 0 0); }
+    .fs-kicker-line {
+      flex: 1;
+      height: 3px;
+      background: linear-gradient(90deg, var(--nl-signal), rgb(226 36 45 / 0%) 85%);
+      transform: scaleX(0);
+      transform-origin: 0 50%;
+    }
+
+    .fs-rise { display: block; transform: translate3d(0, 105%, 0); opacity: 0; }
+
+    .fs-titlebox {
+      height: 216px;
+      margin-top: 34px;
+      overflow: hidden;
+      transform-origin: 0 0;
+    }
+    .fs-title {
+      width: 1560px;
+      color: #fff;
+      font-size: 76px;
+      font-weight: 700;
+      line-height: 104px;
+      letter-spacing: .01em;
+    }
+    .fs-title .nl-swap__item { -webkit-line-clamp: 2; overflow: hidden; }
+
+    /* title card: no points → the title takes the stage */
+    .fs-content { transition: transform var(--t-layout) var(--ease-move); }
+    .is-card .fs-content { transform: translate3d(0, 200px, 0); }
+    .fs-titlebox { transition: transform var(--t-layout) var(--ease-move); }
+    .is-card .fs-titlebox { transform: scale(1.18); }
+
+    .fs-points {
+      list-style: none;
+      margin: 40px 0 0;
+      padding: 0;
+      width: 1560px;
+    }
+    .fs-point {
+      position: relative;
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      align-items: start;
+      padding: 22px 0 20px;
+    }
+    .fs-point.is-empty { display: none; }
+    .fs-rule {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 1px;
+      background: rgb(255 255 255 / 16%);
+      transform: scaleX(0);
+      transform-origin: 0 50%;
+    }
+    .fs-idx {
+      color: var(--nl-signal-hi);
+      font-family: "NL Latin", var(--nl-font);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 54px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .04em;
+    }
+    .fs-ptext {
+      color: #fff;
+      font-size: 38px;
+      font-weight: 500;
+      line-height: 54px;
+      letter-spacing: .01em;
+      transition: color var(--t-morph) var(--ease-out);
+    }
+    .fs-ptext .nl-swap__item { -webkit-line-clamp: 2; overflow: hidden; }
+    .fs-point .fs-rise { transform: translate3d(0, 60%, 0); }
+    .fs-point.is-past .fs-ptext { color: rgb(255 255 255 / 52%); }
+
+    .fs-footer {
+      position: absolute;
+      left: 144px;
+      right: 144px;
+      bottom: 64px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      color: var(--nl-on-ink-2);
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      transform: translate3d(0, calc(var(--lift, 0px) * -1), 0);
+      transition: transform var(--t-layout) var(--ease-move);
+      opacity: 0;
+    }
+    .fs-brand { display: flex; align-items: center; gap: 14px; color: #fff; }
+    .fs-brand b { width: 12px; height: 12px; background: var(--nl-signal); }
+    .fs-brand span { font-family: "NL Latin"; font-size: 20px; font-weight: 700; letter-spacing: .24em; }
+    .fs-brand em { font-style: normal; font-size: 18px; color: var(--nl-on-ink-2); letter-spacing: .1em; }
+
+    /* ==== shown ==== */
+    .nl-root[data-show="1"] .fs-canvas { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .fs-kicker .nl-chip { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .fs-kicker-line { transform: scaleX(1); }
+    .nl-root[data-show="1"] .fs-head .fs-rise { transform: translate3d(0, 0, 0); opacity: 1; }
+    .nl-root[data-show="1"] .fs-footer { opacity: 1; }
+    .nl-root[data-show="1"] .fs-point.is-on .fs-rule { transform: scaleX(1); }
+    .nl-root[data-show="1"] .fs-point.is-on .fs-rise { transform: translate3d(0, 0, 0); opacity: 1; }
+
+    /* point reveal (Continue) and on-air changes */
+    .fs-point .fs-rule { transition: transform var(--t-draw) var(--ease-out); }
+    .fs-point .fs-rise {
+      transition: transform var(--t-text) var(--ease-out) var(--t-stagger), opacity calc(var(--t-text) * .5) linear var(--t-stagger);
+    }
+    .fs-point .fs-idx.fs-rise { transition-delay: 0ms; }
+
+    /* ==== enter: wipe → kicker → title → first point ==== */
+    .nl-root[data-show="1"][data-motion="enter"] .fs-canvas { transition: clip-path var(--t-wipe) var(--ease-move); }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-edge { animation: fs-edge var(--t-wipe) var(--ease-move) 1 both; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-kicker .nl-chip { transition: clip-path var(--t-unfold) var(--ease-out) 320ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-kicker-line { transition: transform 900ms var(--ease-out) 360ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-kicker .fs-rise { transition: transform var(--t-text) var(--ease-out) 400ms, opacity 280ms linear 400ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-titlebox .fs-rise { transition: transform 720ms var(--ease-out) 440ms, opacity 360ms linear 440ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-point.is-on .fs-rule { transition-delay: 680ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-point.is-on .fs-rise { transition-delay: 760ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-point.is-on .fs-idx.fs-rise { transition-delay: 700ms; }
+    .nl-root[data-show="1"][data-motion="enter"] .fs-footer { transition: opacity var(--t-text) var(--ease-out) 800ms, transform var(--t-layout) var(--ease-move); }
+
+    /* ==== exit: content lifts off, the wipe carries the canvas away ==== */
+    .nl-root[data-show="0"] .fs-rise,
+    .nl-root[data-show="0"] .fs-footer { transition: opacity 200ms linear, transform 0s linear 700ms; }
+    .nl-root[data-show="0"] .fs-rule,
+    .nl-root[data-show="0"] .fs-kicker-line { transition: transform 0s linear 700ms; }
+    .nl-root[data-show="0"] .fs-kicker .nl-chip { transition: clip-path 200ms var(--ease-in); }
+    .nl-root[data-show="0"][data-motion="exit"] .fs-canvas {
+      clip-path: inset(0 0 0 100%);
+      transition: clip-path var(--t-wipe) var(--ease-move) 120ms;
+    }
+    .nl-root[data-show="0"][data-motion="exit"] .fs-edge { animation: fs-edge var(--t-wipe) var(--ease-move) 120ms 1 both; }
+
+    @keyframes fs-edge {
+      0%   { transform: translate3d(0, 0, 0); opacity: 1; }
+      88%  { opacity: 1; }
+      100% { transform: translate3d(1928px, 0, 0); opacity: 0; }
+    }
+  </style>
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "Newsline 全屏图文 FULLSCREEN",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "11",
+      webplayout: "1",
+      steps: "5",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "6",
+      DataFields: [
+        { field: "f1", ftype: "textarea", title: "标题（最多两行）", value: "前三季度经济运行总体平稳\n主要指标稳中向好" },
+        { field: "f0", ftype: "textfield", title: "栏目", value: "数据" },
+        { field: "f2", ftype: "textfield", title: "要点 1", value: "国内生产总值同比增长 5.1%，增速保持在合理区间" },
+        { field: "f3", ftype: "textfield", title: "要点 2", value: "规模以上工业增加值增长 5.8%，高技术制造业引领" },
+        { field: "f4", ftype: "textfield", title: "要点 3", value: "社会消费品零售总额增长 4.6%，服务消费较快恢复" },
+        { field: "f5", ftype: "textfield", title: "要点 4", value: "" },
+        { field: "f6", ftype: "textfield", title: "要点 5", value: "" },
+        { field: "f7", ftype: "textfield", title: "来源（可留空）", value: "来源：国家统计局" },
+        { ftype: "instruction", value: "Play 显示标题和第 1 条要点，Continue 逐条揭示后续要点。要点全部留空即为标题卡版式。上屏期间标题条 / 人名条自动让开，下屏后自动回来。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root fs" id="root">
+      <div class="fs-canvas">
+        <div class="fs-grid"></div>
+        <div class="fs-glow"></div>
+
+        <div class="fs-content">
+          <div class="fs-head">
+            <div class="fs-kicker">
+              <div class="nl-chip nl-chip--signal"><span class="fs-rise"><span class="nl-swap" id="section"></span></span></div>
+              <i class="fs-kicker-line"></i>
+            </div>
+            <div class="fs-titlebox"><span class="fs-rise"><span class="nl-swap fs-title" id="title"></span></span></div>
+          </div>
+          <ol class="fs-points" id="points"></ol>
+        </div>
+
+        <div class="fs-footer">
+          <span class="nl-swap" id="source"></span>
+          <span class="fs-brand"><b></b><span>NEWSLINE</span><em>新闻现场</em></span>
+        </div>
+      </div>
+      <i class="fs-edge"></i>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const N = window.Newsline;
+      if (!N) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      N.stage($("stage"));
+
+      const FIELDS = ["f2", "f3", "f4", "f5", "f6"];
+      const rows = FIELDS.map((f, i) => {
+        const li = document.createElement("li");
+        li.className = "fs-point is-empty";
+        li.innerHTML =
+          '<i class="fs-rule"></i>' +
+          `<span class="fs-idx fs-rise">${String(i + 1).padStart(2, "0")}</span>` +
+          '<span class="fs-rise"><span class="nl-swap fs-ptext"></span></span>';
+        $("points").appendChild(li);
+        return { li, text: li.querySelector(".fs-ptext") };
+      });
+
+      let points = [];
+
+      function reveal(step) {
+        const count = Math.min(step + 1, points.length);
+        rows.forEach((r, i) => {
+          r.li.classList.toggle("is-on", i < count);
+          r.li.classList.toggle("is-past", i < count - 1);
+        });
+      }
+
+      N.define({
+        kind: "fullscreen",
+        root,
+        enterMs: 1400,
+        exitMs: 900,
+        enterDelay: N.T.frame * 2,
+        releaseDelay: 360,                 // lower thirds return as the wipe clears
+        defaults: {
+          f0: "数据",
+          f1: "前三季度经济运行总体平稳\n主要指标稳中向好",
+          f2: "国内生产总值同比增长 5.1%，增速保持在合理区间",
+          f3: "规模以上工业增加值增长 5.8%，高技术制造业引领",
+          f4: "社会消费品零售总额增长 4.6%，服务消费较快恢复",
+          f5: "",
+          f6: "",
+          f7: "来源：国家统计局"
+        },
+        lift: (env) => (env.reserveBottom ? Math.max(0, env.reserveBottom + 28 - 64) : 0),
+        render(d, ctx) {
+          const animate = ctx.animate;
+          N.swap($("section"), N.clean(d.f0), { animate });
+          N.swap($("title"), N.clean(d.f1), { animate, wrap: true });
+          N.swap($("source"), N.clean(d.f7), { animate });
+
+          points = FIELDS.map((f) => N.clean(d[f])).filter(Boolean);
+          rows.forEach((r, i) => {
+            const text = points[i] || "";
+            if (text) N.swap(r.text, text, { animate: animate && r.li.classList.contains("is-on"), wrap: true });
+            r.li.classList.toggle("is-empty", !text);
+          });
+          root.classList.toggle("is-card", points.length === 0);
+          reveal(this.step);
+        },
+        onNext(step) {
+          if (step >= points.length) { this.step = Math.max(0, points.length - 1); return; }
+          reveal(step);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

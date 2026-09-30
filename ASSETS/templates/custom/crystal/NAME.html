@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  CRYSTAL 晶华新闻 · NAME 人名条                     SPX web layer 4
+  Scene slot "lower" (exclusive with HEADLINE). Playing the next NAME on the
+  same layer switches names in place. Same fields as Newsline NAME.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>晶华新闻 · 人名条</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <link rel="stylesheet" href="./_scene/lower.css">
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "晶华 CRYSTAL 人名条 NAME",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "14",
+      webplayout: "4",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "4",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "姓名", value: "李明远" },
+        { field: "f1", ftype: "textfield", title: "职务 / 单位", value: "城市规划研究院 总规划师" },
+        { field: "f3", ftype: "textfield", title: "补充（地点等，可留空）", value: "" },
+        {
+          field: "f2", ftype: "dropdown", title: "身份标签", value: "",
+          items: [
+            { text: "（无）", value: "" },
+            { text: "记者", value: "记者" },
+            { text: "主持人", value: "主持人" },
+            { text: "嘉宾", value: "嘉宾" },
+            { text: "专家", value: "专家" },
+            { text: "连线", value: "连线" },
+            { text: "现场", value: "现场" }
+          ]
+        },
+        { ftype: "instruction", value: "连续播出多个人名条时保持同一图层：人名原地切换，不会重新入场。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root lower lower--name" id="root">
+      <div class="nl-lift">
+        <div class="lower-block">
+          <div class="cr-row">
+            <div class="cr-shadow"></div>
+            <div class="cr-cap cr-glass cr-glass--red">
+              <span class="cr-t"><span class="nl-swap" id="role"></span></span>
+            </div>
+            <div class="cr-bar cr-glass">
+              <span class="cr-t"><span class="nl-swap cr-title" id="name"></span></span>
+              <i class="cr-glint" id="glint"></i>
+            </div>
+            <i class="cr-rule cr-gold"></i>
+            <i class="cr-flare" id="flare"></i>
+          </div>
+          <div class="cr-subrow" id="subrow">
+            <div class="cr-sub cr-glass cr-glass--white">
+              <span class="cr-t"><span class="nl-swap cr-subtext" id="title"></span></span>
+              <i class="cr-sep" id="sep"></i>
+              <span class="cr-t"><span class="nl-swap cr-subtext is-muted" id="extra"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const C = window.Crystal;
+      if (!C) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      C.stage($("stage"));
+
+      const MAX = 1728 - 200;
+      const px = (el) => parseFloat(el.style.width) || 0;
+      let lastName = null;
+      let glintTimer = 0;
+
+      C.define({
+        kind: "name",
+        slot: "lower",
+        suspendOn: ["fullscreen"],
+        root,
+        enterMs: 2000,
+        exitMs: 620,
+        defaults: { f0: "李明远", f1: "城市规划研究院 总规划师", f2: "", f3: "" },
+        lift: (env) => Math.max(0, env.reserveBottom + 22 - 70),
+        render(d, ctx) {
+          const animate = ctx.animate;
+          const name = C.clean(d.f0);
+          const title = C.clean(d.f1);
+          const extra = C.clean(d.f3);
+
+          C.swap($("role"), C.clean(d.f2), { animate });
+          C.swap($("name"), name, { animate, fit: { max: MAX, size: 48, min: 36 } });
+          C.swap($("title"), title, { animate, fit: { max: MAX * 0.7, size: 26, min: 22 } });
+          C.swap($("extra"), extra, { animate, fit: { max: MAX * 0.3, size: 26, min: 22 } });
+          $("sep").classList.toggle("is-empty", !title || !extra);
+          $("subrow").classList.toggle("is-empty", !title && !extra);
+
+          const capW = px($("role"));
+          root.style.setProperty("--cap-w", `${capW}px`);
+          $("flare").style.setProperty("--run", `${capW + px($("name")) + 84}px`);
+
+          if (animate && (name !== lastName || ctx.fromCarry)) C.retrigger($("glint"), "is-run");
+          lastName = name;
+        },
+        onShow(shown) {
+          clearInterval(glintTimer);
+          if (shown) glintTimer = setInterval(() => C.retrigger($("glint"), "is-run"), 9000);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

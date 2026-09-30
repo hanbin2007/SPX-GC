@@ -1,0 +1,223 @@
+/* ==========================================================================
+   NEWSLINE · Lower third component (HEADLINE, NAME)
+
+   Motion grammar — everything happens relative to the signal line:
+     in   the line draws left→right; tags rise out of it; plates unfold
+          down from it; text rises into the plates.
+     out  text fades; plates fold back up into the line; tags sink into
+          it; the line retracts off to the right.
+     swap text pushes up, plates morph their width, a pulse runs the line.
+   ========================================================================== */
+
+.lower-block {
+  position: absolute;
+  left: var(--nl-safe-x);
+  bottom: var(--nl-lower-bottom);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ---- tags row (sits on the line) ---------------------------------------- */
+.lower-tags {
+  display: flex;
+  align-items: flex-end;
+  height: 44px;
+}
+/* an empty chip collapses through its swap host's width (animated) */
+.lower-tags .nl-chip { clip-path: inset(100% 0 0 0); }
+.lower-meta { gap: 0; }
+.lower-meta .nl-live-dot { display: none; }
+.is-live .lower-meta .nl-live-dot { display: block; }
+.lower-meta .nl-sep {
+  width: 1px;
+  height: 18px;
+  background: rgb(255 255 255 / 32%);
+  transition: opacity var(--t-morph) var(--ease-out);
+}
+.lower-meta .nl-sep.is-empty { opacity: 0; }
+
+/* ---- body: bar + stacked plates ----------------------------------------- */
+.lower-body {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.lower-bar {
+  flex: none;
+  width: 8px;
+  background: var(--nl-signal);
+  transform: scaleY(0);
+  transform-origin: 50% 0;
+}
+
+.lower-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.lower-mainwrap,
+.lower-subwrap { position: relative; }
+
+.lower-main {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100px;
+  padding: 0 40px 0 32px;
+  color: var(--nl-on-paper);
+  background: linear-gradient(180deg, #ffffff 0%, var(--nl-paper) 45%, var(--nl-paper-2) 100%);
+  clip-path: inset(0 0 100% 0);
+}
+
+/* the line: 4px along the top edge of the main plate, extends over the bar.
+   Lives outside the clipped plate so it can draw before the plate opens. */
+.lower-line {
+  position: absolute;
+  z-index: 3;
+  left: -8px;
+  right: 0;
+  top: 0;
+  height: 4px;
+  background: var(--nl-signal);
+  transform: scaleX(0);
+  transform-origin: 100% 50%;
+  --pulse-run: 1900px;
+}
+
+.lower-text {
+  display: block;
+  transform: translate3d(0, 110%, 0);
+  opacity: 0;
+}
+
+.lower-title {
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 76px;
+  letter-spacing: .01em;
+}
+
+.lower-sub {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 54px;
+  padding: 0 40px 0 32px;
+  overflow: hidden;
+  color: var(--nl-on-ink);
+  background: linear-gradient(180deg, var(--nl-ink-2), var(--nl-ink));
+  clip-path: inset(0 0 100% 0);
+}
+.lower-sub.is-empty { height: 0; }
+
+.lower-subtext {
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 44px;
+  letter-spacing: .02em;
+}
+.lower-sub .nl-sep {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin: 0 18px;
+  background: var(--nl-signal);
+  transition: opacity var(--t-morph) var(--ease-out), margin var(--t-morph) var(--ease-out), width var(--t-morph) var(--ease-out);
+}
+.lower-sub .nl-sep.is-empty { opacity: 0; width: 0; margin: 0; }
+.lower-sub .is-muted { color: var(--nl-on-ink-2); }
+
+/* ==========================================================================
+   Shown — enter profile
+   ========================================================================== */
+.nl-root[data-show="1"] .lower-line  { transform: scaleX(1); transform-origin: 0 50%; }
+.nl-root[data-show="1"] .lower-bar   { transform: scaleY(1); }
+.nl-root[data-show="1"] .lower-main  { clip-path: inset(0 0 0 0); }
+.nl-root[data-show="1"] .lower-sub   { clip-path: inset(0 0 0 0); }
+.nl-root[data-show="1"] .lower-tags .nl-chip { clip-path: inset(0 0 0 0); }
+.nl-root[data-show="1"] .lower-text  { transform: translate3d(0, 0, 0); opacity: 1; }
+
+.nl-root[data-show="1"][data-motion="enter"] .lower-line {
+  transition: transform var(--t-draw) var(--ease-out);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-bar {
+  transition: transform var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 1);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-main {
+  transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 1.5);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-main .lower-text {
+  transition:
+    transform var(--t-text) var(--ease-out) calc(var(--t-stagger) * 2.5),
+    opacity calc(var(--t-text) * .5) linear calc(var(--t-stagger) * 2.5);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-tags .nl-chip {
+  transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 2.5);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-tags .nl-chip + .nl-chip {
+  transition-delay: calc(var(--t-stagger) * 3.5);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-tags .lower-text {
+  transition:
+    transform var(--t-text) var(--ease-out) calc(var(--t-stagger) * 3),
+    opacity calc(var(--t-text) * .5) linear calc(var(--t-stagger) * 3);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-sub {
+  transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 3.5);
+}
+.nl-root[data-show="1"][data-motion="enter"] .lower-sub .lower-text {
+  transition:
+    transform var(--t-text) var(--ease-out) calc(var(--t-stagger) * 4.5),
+    opacity calc(var(--t-text) * .5) linear calc(var(--t-stagger) * 4.5);
+}
+
+/* shown & idle: on-air changes (sub line appearing / disappearing) */
+.nl-root[data-show="1"][data-motion="idle"] .lower-sub {
+  transition: height var(--t-morph) var(--ease-out), clip-path var(--t-morph) var(--ease-out);
+}
+.nl-root[data-show="1"][data-motion="idle"] .lower-sub.is-empty { clip-path: inset(0 0 100% 0); }
+
+/* ==========================================================================
+   Hidden — exit profile (applies whenever data-show becomes 0)
+   ========================================================================== */
+.nl-root[data-show="0"] .lower-text {
+  transition: opacity calc(var(--t-out) * .5) linear, transform 0s linear var(--t-out);
+}
+.nl-root[data-show="0"] .lower-sub {
+  transition: clip-path calc(var(--t-out) * .8) var(--ease-in);
+}
+.nl-root[data-show="0"] .lower-main {
+  transition: clip-path calc(var(--t-out) * .9) var(--ease-in) calc(var(--t-stagger) * .5);
+}
+.nl-root[data-show="0"] .lower-tags .nl-chip {
+  transition: clip-path calc(var(--t-out) * .8) var(--ease-in) calc(var(--t-stagger) * .5);
+}
+.nl-root[data-show="0"] .lower-bar {
+  transition: transform calc(var(--t-out) * .8) var(--ease-in) calc(var(--t-stagger) * 1);
+}
+.nl-root[data-show="0"] .lower-line {
+  transition: transform calc(var(--t-out) * .9) var(--ease-in) calc(var(--t-stagger) * 2);
+}
+
+/* ==========================================================================
+   Variants
+   ========================================================================== */
+
+/* HEADLINE — breaking news */
+.is-breaking .lower-tags .nl-chip--signal { background: var(--nl-ink); }
+.is-breaking .lower-meta { background: var(--nl-signal); }
+.lower-tags .nl-chip { transition: background-color var(--t-morph) var(--ease-out); }
+.is-breaking .lower-meta .nl-live-dot { background: #fff; box-shadow: none; animation: nl-blink 1.2s steps(2, jump-none) infinite; }
+.is-breaking .lower-line { height: 6px; }
+.is-breaking .lower-bar { background: var(--nl-signal-hi); }
+@keyframes nl-blink { 50% { opacity: .25; } }
+
+/* NAME */
+.lower--name .lower-main { height: 92px; }
+.lower--name .lower-title { font-size: 52px; line-height: 72px; letter-spacing: .04em; }
+.lower--name .lower-sub { height: 52px; }
+.lower--name .lower-sub.is-empty { height: 0; }
+.lower--name .lower-subtext { font-size: 28px; }

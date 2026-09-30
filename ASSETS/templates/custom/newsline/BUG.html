@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!--
+  NEWSLINE · BUG 台标 / 时钟 / 直播角标                SPX web layer 5
+  Stays on air. Clock digits roll individually. The LIVE / location flag
+  (top left) steps aside while FULLSCREEN is on air. See README.md.
+-->
+<head>
+  <meta charset="utf-8">
+  <title>Newsline · 台标时钟</title>
+  <link rel="stylesheet" href="./_scene/scene.css">
+  <style>
+    /* ---- top right: logo lockup + clock ---- */
+    .bug-right {
+      position: absolute;
+      top: var(--nl-safe-y);
+      right: var(--nl-safe-x);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .bug-logo { display: flex; height: 60px; }
+    .bug-mark {
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--nl-signal);
+      font-family: "NL Latin";
+      font-size: 36px;
+      font-weight: 700;
+      clip-path: inset(50% 50% 50% 50%);
+    }
+    .bug-word {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 22px 0 18px;
+      background: rgb(12 22 33 / 92%);
+      clip-path: inset(0 0 0 100%);
+    }
+    .bug-word b {
+      color: #fff;
+      font-family: "NL Latin";
+      font-size: 21px;
+      font-weight: 700;
+      line-height: 24px;
+      letter-spacing: .24em;
+    }
+    .bug-word em {
+      color: var(--nl-on-ink-2);
+      font-style: normal;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 20px;
+      letter-spacing: .52em;
+    }
+    .bug-rise { display: block; transform: translate3d(0, 100%, 0); opacity: 0; }
+
+    .bug-clock {
+      display: flex;
+      align-items: center;
+      height: 40px;
+      overflow: hidden;
+      color: var(--nl-on-paper);
+      background: rgb(247 248 250 / 94%);
+      clip-path: inset(0 0 100% 0);
+      transition: height var(--t-morph) var(--ease-out);
+    }
+    .bug-clock-inner { display: flex; align-items: center; padding: 0 16px; }
+    .bug-digits {
+      display: flex;
+      font-family: "NL Latin";
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 40px;
+      font-variant-numeric: tabular-nums;
+    }
+    .bug-digits .nl-swap { height: 40px; }
+    .bug-colon { padding: 0 1px; transform: translateY(-1px); }
+    .bug-zone {
+      margin-left: 12px;
+      color: var(--nl-on-paper-2);
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: .12em;
+    }
+    .bug-zone .nl-swap { height: 40px; line-height: 40px; }
+    .no-clock .bug-clock { height: 0; }
+
+    /* ---- top left: live / location flag ---- */
+    .bug-left {
+      position: absolute;
+      top: var(--nl-safe-y);
+      left: var(--nl-safe-x);
+      display: flex;
+      height: 44px;
+      clip-path: inset(0 100% 0 0);
+    }
+    .bug-live {
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      color: #fff;
+      background: var(--nl-signal);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      transition: width var(--t-morph) var(--ease-out);
+    }
+    .bug-live .nl-live-dot { margin-left: 16px; background: #fff; box-shadow: none; animation: bug-blink 1.6s ease-in-out infinite; }
+    .bug-live span { padding: 0 16px 0 10px; white-space: nowrap; }
+    @keyframes bug-blink { 50% { opacity: .35; } }
+    .bug-where { color: var(--nl-on-ink); background: rgb(12 22 33 / 92%); font-size: 22px; font-weight: 500; letter-spacing: .06em; }
+    .bug-where .nl-swap { height: 44px; line-height: 44px; }
+    .bug-where .nl-swap__item { padding: 0 18px; }
+
+    /* ==== shown ==== */
+    .nl-root[data-show="1"] .bug-mark { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .bug-word { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"] .bug-rise { transform: translate3d(0, 0, 0); opacity: 1; }
+    .nl-root[data-show="1"] .bug-clock { clip-path: inset(0 0 0 0); }
+    .nl-root[data-show="1"]:not(.is-hidden-left) .bug-left { clip-path: inset(0 0 0 0); }
+
+    .nl-root[data-show="1"][data-motion="enter"] .bug-mark { transition: clip-path var(--t-draw) var(--ease-out); }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-word { transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 2); }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-rise { transition: transform var(--t-text) var(--ease-out) calc(var(--t-stagger) * 3), opacity 280ms linear calc(var(--t-stagger) * 3); }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-word em.bug-rise { transition-delay: calc(var(--t-stagger) * 4); }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-clock { transition: clip-path var(--t-unfold) var(--ease-out) calc(var(--t-stagger) * 4), height var(--t-morph) var(--ease-out); }
+    .nl-root[data-show="1"][data-motion="enter"] .bug-left { transition: clip-path var(--t-unfold) var(--ease-move) calc(var(--t-stagger) * 3); }
+
+    /* idle: the left flag folds away / back (fullscreen, live off, no text) */
+    .nl-root .bug-left { transition: clip-path var(--t-unfold) var(--ease-move); }
+
+    /* ==== exit ==== */
+    .nl-root[data-show="0"] .bug-rise { transition: opacity calc(var(--t-out) * .5) linear, transform 0s linear var(--t-out); }
+    .nl-root[data-show="0"] .bug-clock { transition: clip-path calc(var(--t-out) * .8) var(--ease-in); }
+    .nl-root[data-show="0"] .bug-word { transition: clip-path calc(var(--t-out) * .9) var(--ease-in) calc(var(--t-stagger) * .5); }
+    .nl-root[data-show="0"] .bug-mark { transition: clip-path calc(var(--t-out) * .8) var(--ease-in) calc(var(--t-stagger) * 2); }
+    .nl-root[data-show="0"] .bug-left { transition: clip-path calc(var(--t-out) * .9) var(--ease-in); }
+  </style>
+  <script>
+    window.SPXGCTemplateDefinition = {
+      description: "Newsline 台标时钟 BUG",
+      playserver: "-",
+      playchannel: "1",
+      playlayer: "15",
+      webplayout: "5",
+      steps: "1",
+      out: "manual",
+      dataformat: "json",
+      uicolor: "1",
+      DataFields: [
+        { field: "f0", ftype: "textfield", title: "左上角标（地点，可留空）", value: "北京" },
+        { field: "f1", ftype: "checkbox", title: "直播标识", value: "1" },
+        { field: "f2", ftype: "checkbox", title: "显示时钟", value: "1" },
+        { field: "f3", ftype: "textfield", title: "时钟标签", value: "北京时间" },
+        {
+          field: "f4", ftype: "dropdown", title: "时区", value: "Asia/Shanghai",
+          items: [
+            { text: "北京 / 上海", value: "Asia/Shanghai" },
+            { text: "本机时间", value: "local" },
+            { text: "香港", value: "Asia/Hong_Kong" },
+            { text: "东京", value: "Asia/Tokyo" },
+            { text: "伦敦", value: "Europe/London" },
+            { text: "巴黎 / 柏林", value: "Europe/Paris" },
+            { text: "纽约", value: "America/New_York" },
+            { text: "洛杉矶", value: "America/Los_Angeles" },
+            { text: "UTC", value: "UTC" }
+          ]
+        },
+        { ftype: "instruction", value: "常驻图层。播出中修改任意项按 Update 即原地切换。全屏图文上屏时左上角标自动收起。" }
+      ]
+    };
+  </script>
+</head>
+<body>
+  <main class="nl-stage" id="stage">
+    <section class="nl-root bug" id="root">
+      <div class="bug-left">
+        <div class="bug-live" id="live"><i class="nl-live-dot"></i><span>直播</span></div>
+        <div class="bug-where"><span class="nl-swap" id="where"></span></div>
+      </div>
+
+      <div class="bug-right">
+        <div class="bug-logo">
+          <div class="bug-mark">N</div>
+          <div class="bug-word"><b class="bug-rise">NEWSLINE</b><em class="bug-rise">新闻现场</em></div>
+        </div>
+        <div class="bug-clock">
+          <div class="bug-clock-inner bug-rise">
+            <span class="bug-digits">
+              <span class="nl-swap" id="h1"></span><span class="nl-swap" id="h2"></span><span class="bug-colon">:</span><span class="nl-swap" id="m1"></span><span class="nl-swap" id="m2"></span>
+            </span>
+            <span class="bug-zone"><span class="nl-swap" id="zone"></span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./_scene/scene.js"></script>
+  <script>
+    (function () {
+      const N = window.Newsline;
+      if (!N) return;                       // SPX template import (JSDOM) only reads the definition
+      const $ = (id) => document.getElementById(id);
+      const root = $("root");
+      N.stage($("stage"));
+
+      let zone = "Asia/Shanghai";
+      let live = true;
+      let where = "";
+      let fullscreen = false;
+      let clockTimer = 0;
+
+      function now() {
+        const opts = { hour: "2-digit", minute: "2-digit", hour12: false };
+        if (zone !== "local") opts.timeZone = zone;
+        try { return new Intl.DateTimeFormat("en-GB", opts).format(new Date()).replace(/[^0-9]/g, ""); }
+        catch (e) { return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).replace(/[^0-9]/g, ""); }
+      }
+
+      function drawClock(animate) {
+        const t = now().padStart(4, "0").slice(-4);
+        ["h1", "h2", "m1", "m2"].forEach((id, i) => N.swap($(id), t[i], { animate }));
+      }
+
+      function startClock() {
+        clearInterval(clockTimer);
+        clockTimer = setInterval(() => drawClock(true), 1000);   // only changed digits roll
+      }
+
+      function syncLeft() {
+        $("live").style.width = live ? `${$("live").scrollWidth}px` : "0px";
+        // nothing to say, or a fullscreen graphic is up (not a live picture)
+        root.classList.toggle("is-hidden-left", (!live && !where) || fullscreen);
+      }
+
+      N.define({
+        kind: "bug",
+        root,
+        enterMs: 1000,
+        exitMs: 520,
+        defaults: { f0: "北京", f1: "1", f2: "1", f3: "北京时间", f4: "Asia/Shanghai" },
+        render(d, ctx) {
+          const animate = ctx.animate;
+          zone = N.clean(d.f4) || "local";
+          live = String(d.f1) !== "0";
+          where = N.clean(d.f0);
+          N.swap($("where"), where, { animate });
+          N.swap($("zone"), N.clean(d.f3), { animate });
+          root.classList.toggle("no-clock", String(d.f2) === "0");
+          drawClock(animate);
+          syncLeft();
+        },
+        onEnv(env) { fullscreen = env.fullscreen; syncLeft(); },
+        onShow(shown) {
+          if (shown) { drawClock(false); startClock(); }
+          else clearInterval(clockTimer);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
